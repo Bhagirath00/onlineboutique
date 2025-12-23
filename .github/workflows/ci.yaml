@@ -1,0 +1,35 @@
+name: Online Boutique CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Frontend Service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src/frontend
+          push: false
+          tags: onlineboutique/frontend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Cart Service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src/cartservice
+          push: false
+          tags: onlineboutique/cartservice:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
