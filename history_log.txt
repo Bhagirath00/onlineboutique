@@ -1,3 +1,4 @@
 Work done: start project setup [2025-12-23 20:37:27]
 Work done: add basic folder structure [2025-12-23 20:37:28]
 Work done: create terraform config files [2025-12-23 20:37:28]
+Work done: add dockerfiles for services [2025-12-23 20:37:29]
