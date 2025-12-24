@@ -1,0 +1,30 @@
+# --- Secrets / local env files ---
+.env
+.env.*
+!.env.example
+
+# --- Terraform (state, local cache, plans) ---
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfvars
+**/*.tfvars.json
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/tfplan
+**/*.tfplan
+
+# --- Keys / certs ---
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+
+# --- OS / editor noise ---
+.DS_Store
+Thumbs.db
+.vscode/
+
+csv.ps1

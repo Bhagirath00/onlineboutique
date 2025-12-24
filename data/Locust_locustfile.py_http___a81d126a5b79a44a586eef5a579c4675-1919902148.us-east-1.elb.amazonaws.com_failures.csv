@@ -1,0 +1,51 @@
+Method,Name,Error,Occurrences
+GET,/product/1YMWWN1N4O,HTTPError('500 Server Error: Internal Server Error for url: /product/1YMWWN1N4O'),108
+POST,/cart/checkout,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",4231
+POST,/cart/checkout,RemoteDisconnected('Remote end closed connection without response'),4413
+GET,/product/2ZYFJ3GM2N,"ChunkedEncodingError(ProtocolError('Connection broken: IncompleteRead(1912 bytes read, 136 more expected)', IncompleteRead(1912 bytes read, 136 more expected)))",1
+POST,/cart,HTTPError('500 Server Error: Internal Server Error for url: /cart'),709
+GET,/product/66VCHSJNUP,HTTPError('500 Server Error: Internal Server Error for url: /product/66VCHSJNUP'),89
+GET,/product/66VCHSJNUP,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1447
+GET,/product/L9ECAV7KIM,"gaierror(11001, 'getaddrinfo failed')",1
+GET,/product/LS4PSXUNUM,"gaierror(11001, 'getaddrinfo failed')",1
+GET,/,"ChunkedEncodingError(ProtocolError('Connection broken: IncompleteRead(1898 bytes read, 150 more expected)', IncompleteRead(1898 bytes read, 150 more expected)))",7
+GET,/,RemoteDisconnected('Remote end closed connection without response'),25055
+GET,/product/0PUK6V6EV0,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1390
+GET,/product/0PUK6V6EV0,RemoteDisconnected('Remote end closed connection without response'),1495
+GET,/product/66VCHSJNUP,"gaierror(11001, 'getaddrinfo failed')",1
+GET,/product/OLJCESPC7Z,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1384
+GET,/product/LS4PSXUNUM,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1431
+GET,/product/2ZYFJ3GM2N,RemoteDisconnected('Remote end closed connection without response'),1491
+GET,/product/6E92ZMYYFZ,RemoteDisconnected('Remote end closed connection without response'),1412
+GET,/product/L9ECAV7KIM,RemoteDisconnected('Remote end closed connection without response'),1485
+GET,/product/1YMWWN1N4O,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1370
+GET,/,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",20766
+GET,/,"gaierror(11001, 'getaddrinfo failed')",11
+GET,/product/2ZYFJ3GM2N,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1416
+GET,/product/9SIQT8TOJO,HTTPError('500 Server Error: Internal Server Error for url: /product/9SIQT8TOJO'),95
+GET,/product/LS4PSXUNUM,HTTPError('500 Server Error: Internal Server Error for url: /product/LS4PSXUNUM'),85
+POST,/cart,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",8233
+GET,/product/66VCHSJNUP,RemoteDisconnected('Remote end closed connection without response'),1440
+GET,/product/OLJCESPC7Z,RemoteDisconnected('Remote end closed connection without response'),1487
+GET,/product/2ZYFJ3GM2N,"gaierror(11001, 'getaddrinfo failed')",1
+GET,/product/9SIQT8TOJO,RemoteDisconnected('Remote end closed connection without response'),1469
+GET,/product/OLJCESPC7Z,HTTPError('500 Server Error: Internal Server Error for url: /product/OLJCESPC7Z'),83
+GET,/product/9SIQT8TOJO,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1350
+GET,/cart,"gaierror(11001, 'getaddrinfo failed')",3
+GET,/,HTTPError('500 Server Error: Internal Server Error for url: /'),2873
+GET,/product/0PUK6V6EV0,HTTPError('500 Server Error: Internal Server Error for url: /product/0PUK6V6EV0'),94
+GET,/cart,HTTPError('500 Server Error: Internal Server Error for url: /cart'),366
+GET,/cart,RemoteDisconnected('Remote end closed connection without response'),4294
+GET,/product/L9ECAV7KIM,HTTPError('500 Server Error: Internal Server Error for url: /product/L9ECAV7KIM'),91
+GET,/product/2ZYFJ3GM2N,HTTPError('500 Server Error: Internal Server Error for url: /product/2ZYFJ3GM2N'),87
+GET,/cart,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",4077
+GET,/product/L9ECAV7KIM,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1395
+POST,/cart/checkout,HTTPError('500 Server Error: Internal Server Error for url: /cart/checkout'),202
+GET,/product/6E92ZMYYFZ,"gaierror(11001, 'getaddrinfo failed')",1
+POST,/cart,RemoteDisconnected('Remote end closed connection without response'),9344
+POST,/cart/checkout,"gaierror(11001, 'getaddrinfo failed')",1
+GET,/product/0PUK6V6EV0,"gaierror(11001, 'getaddrinfo failed')",1
+GET,/product/6E92ZMYYFZ,HTTPError('500 Server Error: Internal Server Error for url: /product/6E92ZMYYFZ'),73
+GET,/product/6E92ZMYYFZ,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a81d126a5b79a44a586eef5a579c4675-1919902148.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1364
+GET,/product/1YMWWN1N4O,RemoteDisconnected('Remote end closed connection without response'),1425
+GET,/product/LS4PSXUNUM,RemoteDisconnected('Remote end closed connection without response'),1444
