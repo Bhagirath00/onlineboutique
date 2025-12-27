@@ -1,0 +1,12 @@
+apiVersion: v2
+name: onlineboutique
+description: A Helm chart for Google's Online Boutique microservices demo
+type: application
+version: 0.1.0
+appVersion: "v0.3.6"
+keywords:
+  - ecommerce
+  - microservices
+  - demo
+maintainers:
+  - name: DevOpsPortfolio

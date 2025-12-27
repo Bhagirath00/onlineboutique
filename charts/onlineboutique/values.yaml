@@ -1,0 +1,29 @@
+# Default values for onlineboutique.
+
+frontend:
+  image:
+    repository: gcr.io/google-samples/microservices-demo/frontend
+    tag: v0.3.6
+    pullPolicy: IfNotPresent
+  service:
+    type: LoadBalancer
+    port: 80
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+redis:
+  image:
+    repository: redis
+    tag: alpine
+  resources:
+    requests:
+      cpu: 70m
+      memory: 200Mi
+    limits:
+      cpu: 125m
+      memory: 256Mi
