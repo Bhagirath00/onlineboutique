@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}-frontend
+  labels:
+    app: frontend
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: server
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: "/_healthz"
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: "/_healthz"
+              port: 8080
+          env:
+            - name: PORT
+              value: "8080"
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}-frontend
+spec:
+  type: {{ .Values.frontend.service.type }}
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: {{ .Values.frontend.service.port }}
+      targetPort: 8080
