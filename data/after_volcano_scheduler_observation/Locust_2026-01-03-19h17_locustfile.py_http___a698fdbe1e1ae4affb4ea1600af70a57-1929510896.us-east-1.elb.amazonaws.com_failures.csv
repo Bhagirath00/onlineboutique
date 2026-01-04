@@ -1,0 +1,33 @@
+Method,Name,Error,Occurrences
+GET,/,"ConnectionAbortedError(10053, 'An established connection was aborted by the software in your host machine', None, 10053, None)",2
+POST,/cart/checkout,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",251
+POST,/cart/checkout,RemoteDisconnected('Remote end closed connection without response'),487
+GET,/,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",19689
+GET,/product/66VCHSJNUP,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",831
+GET,/,RemoteDisconnected('Remote end closed connection without response'),34736
+POST,/cart,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1272
+GET,/product/0PUK6V6EV0,RemoteDisconnected('Remote end closed connection without response'),1597
+GET,/product/0PUK6V6EV0,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",868
+GET,/product/2ZYFJ3GM2N,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",980
+GET,/product/2ZYFJ3GM2N,RemoteDisconnected('Remote end closed connection without response'),1566
+GET,/product/6E92ZMYYFZ,RemoteDisconnected('Remote end closed connection without response'),1566
+GET,/product/L9ECAV7KIM,RemoteDisconnected('Remote end closed connection without response'),1604
+GET,/product/6E92ZMYYFZ,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",905
+GET,/,"gaierror(11001, 'getaddrinfo failed')",10
+POST,/setCurrency,RemoteDisconnected('Remote end closed connection without response'),2127
+GET,/product/9SIQT8TOJO,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",839
+GET,/cart,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1886
+GET,/product/LS4PSXUNUM,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",899
+GET,/product/L9ECAV7KIM,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",928
+GET,/product/66VCHSJNUP,RemoteDisconnected('Remote end closed connection without response'),1552
+GET,/product/OLJCESPC7Z,RemoteDisconnected('Remote end closed connection without response'),1630
+POST,/setCurrency,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1260
+GET,/product/9SIQT8TOJO,RemoteDisconnected('Remote end closed connection without response'),1501
+GET,/product/9SIQT8TOJO,"gaierror(11001, 'getaddrinfo failed')",1
+GET,/product/OLJCESPC7Z,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",904
+GET,/cart,RemoteDisconnected('Remote end closed connection without response'),3206
+GET,/product/1YMWWN1N4O,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",901
+POST,/,RemoteDisconnected('Remote end closed connection without response'),221
+POST,/cart,RemoteDisconnected('Remote end closed connection without response'),2133
+GET,/product/1YMWWN1N4O,RemoteDisconnected('Remote end closed connection without response'),1568
+GET,/product/LS4PSXUNUM,RemoteDisconnected('Remote end closed connection without response'),1560
