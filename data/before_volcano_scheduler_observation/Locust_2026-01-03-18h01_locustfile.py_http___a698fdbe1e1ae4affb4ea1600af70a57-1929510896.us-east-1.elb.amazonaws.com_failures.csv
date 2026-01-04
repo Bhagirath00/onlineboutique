@@ -1,0 +1,69 @@
+Method,Name,Error,Occurrences
+POST,/cart,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",6
+POST,/cart/checkout,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",391
+GET,/product/1YMWWN1N4O,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",15
+POST,/cart/checkout,RemoteDisconnected('Remote end closed connection without response'),504
+GET,/,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",10419
+GET,/product/6E92ZMYYFZ,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",9
+GET,/product/66VCHSJNUP,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1285
+GET,/product/L9ECAV7KIM,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",15
+GET,/product/L9ECAV7KIM,"gaierror(11001, 'getaddrinfo failed')",200
+GET,/product/LS4PSXUNUM,"gaierror(11001, 'getaddrinfo failed')",225
+GET,/product/2ZYFJ3GM2N,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",8
+GET,/,RemoteDisconnected('Remote end closed connection without response'),8216
+POST,/cart,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1818
+GET,/product/0PUK6V6EV0,RemoteDisconnected('Remote end closed connection without response'),1312
+GET,/product/0PUK6V6EV0,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1220
+GET,/product/66VCHSJNUP,"gaierror(11001, 'getaddrinfo failed')",220
+GET,/product/2ZYFJ3GM2N,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1248
+GET,/product/2ZYFJ3GM2N,RemoteDisconnected('Remote end closed connection without response'),1381
+GET,/product/6E92ZMYYFZ,RemoteDisconnected('Remote end closed connection without response'),1301
+GET,/product/L9ECAV7KIM,RemoteDisconnected('Remote end closed connection without response'),1318
+POST,/cart,"gaierror(11001, 'getaddrinfo failed')",641
+POST,/cart,"ChunkedEncodingError(ProtocolError('Connection broken: IncompleteRead(302 bytes read, 1746 more expected)', IncompleteRead(302 bytes read, 1746 more expected)))",1
+GET,/cart,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",24
+GET,/product/6E92ZMYYFZ,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1277
+GET,/product/9SIQT8TOJO,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",11
+GET,/,"gaierror(11001, 'getaddrinfo failed')",157
+GET,/cart,"ChunkedEncodingError(ProtocolError('Connection broken: IncompleteRead(1830 bytes read, 218 more expected)', IncompleteRead(1830 bytes read, 218 more expected)))",2
+POST,/setCurrency,RemoteDisconnected('Remote end closed connection without response'),1172
+GET,/product/66VCHSJNUP,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",14
+GET,/product/LS4PSXUNUM,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",17
+GET,/product/9SIQT8TOJO,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1237
+POST,/,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",2
+POST,/setCurrency,"ChunkedEncodingError(ProtocolError('Connection broken: IncompleteRead(1898 bytes read, 150 more expected)', IncompleteRead(1898 bytes read, 150 more expected)))",1
+GET,/cart,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",2526
+GET,/product/LS4PSXUNUM,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1280
+GET,/product/L9ECAV7KIM,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1265
+POST,/,"gaierror(11001, 'getaddrinfo failed')",9
+GET,/product/66VCHSJNUP,RemoteDisconnected('Remote end closed connection without response'),1324
+POST,/,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",4
+GET,/product/OLJCESPC7Z,RemoteDisconnected('Remote end closed connection without response'),1290
+POST,/setCurrency,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1747
+GET,/product/2ZYFJ3GM2N,"gaierror(11001, 'getaddrinfo failed')",209
+GET,/product/0PUK6V6EV0,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",18
+POST,/cart,"ChunkedEncodingError(ProtocolError('Connection broken: IncompleteRead(1898 bytes read, 150 more expected)', IncompleteRead(1898 bytes read, 150 more expected)))",4
+GET,/product/9SIQT8TOJO,RemoteDisconnected('Remote end closed connection without response'),1297
+GET,/product/9SIQT8TOJO,"gaierror(11001, 'getaddrinfo failed')",224
+GET,/cart,"gaierror(11001, 'getaddrinfo failed')",522
+GET,/product/OLJCESPC7Z,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1290
+GET,/cart,RemoteDisconnected('Remote end closed connection without response'),2577
+GET,/product/1YMWWN1N4O,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to a698fdbe1e1ae4affb4ea1600af70a57-1929510896.us-east-1.elb.amazonaws.com timed out. (connect timeout=None)')",1308
+GET,/product/66VCHSJNUP,"ChunkedEncodingError(ProtocolError('Connection broken: IncompleteRead(1912 bytes read, 136 more expected)', IncompleteRead(1912 bytes read, 136 more expected)))",1
+GET,/,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",1921
+POST,/,RemoteDisconnected('Remote end closed connection without response'),815
+POST,/setCurrency,"gaierror(11001, 'getaddrinfo failed')",304
+GET,/product/1YMWWN1N4O,"gaierror(11001, 'getaddrinfo failed')",215
+POST,/setCurrency,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",17
+POST,/cart,"ChunkedEncodingError(ProtocolError('Connection broken: IncompleteRead(311 bytes read, 1737 more expected)', IncompleteRead(311 bytes read, 1737 more expected)))",1
+GET,/product/6E92ZMYYFZ,"gaierror(11001, 'getaddrinfo failed')",214
+POST,/cart/checkout,"ChunkedEncodingError(ProtocolError('Connection broken: IncompleteRead(1912 bytes read, 136 more expected)', IncompleteRead(1912 bytes read, 136 more expected)))",1
+GET,/product/OLJCESPC7Z,"ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None)",5
+POST,/cart,RemoteDisconnected('Remote end closed connection without response'),2362
+POST,/cart/checkout,"gaierror(11001, 'getaddrinfo failed')",272
+GET,/product/0PUK6V6EV0,"gaierror(11001, 'getaddrinfo failed')",246
+GET,/cart,"ChunkedEncodingError(ProtocolError('Connection broken: IncompleteRead(1912 bytes read, 136 more expected)', IncompleteRead(1912 bytes read, 136 more expected)))",2
+GET,/product/1YMWWN1N4O,RemoteDisconnected('Remote end closed connection without response'),1373
+GET,/product/OLJCESPC7Z,"gaierror(11001, 'getaddrinfo failed')",220
+GET,/product/L9ECAV7KIM,"ChunkedEncodingError(ProtocolError('Connection broken: IncompleteRead(1912 bytes read, 136 more expected)', IncompleteRead(1912 bytes read, 136 more expected)))",1
+GET,/product/LS4PSXUNUM,RemoteDisconnected('Remote end closed connection without response'),1372
