@@ -1,18 +1,24 @@
----
-# NEXUS Scheduler - Kubernetes Deployment
-# ========================================
-# Deploy this after installing on EKS with:
-#   kubectl apply -f deployment.yaml
+##############################################
+# NEXUS Scheduler Extender — Deployment
+# 
+# This deploys NEXUS as a Scheduler Extender
+# that cooperates with the default kube-scheduler.
+# kube-scheduler calls NEXUS at /filter and
+# /prioritize before making placement decisions.
+##############################################
 
+---
+# Namespace for NEXUS components
 apiVersion: v1
 kind: Namespace
 metadata:
   name: nexus-system
   labels:
     app: nexus-scheduler
+    component: extender
 
 ---
-# ServiceAccount for the scheduler
+# RBAC: ServiceAccount for NEXUS
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -20,54 +26,42 @@ metadata:
   namespace: nexus-system
 
 ---
-# ClusterRole - Permissions the scheduler needs
+# RBAC: ClusterRole — read-only access to pods and nodes
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: nexus-scheduler
 rules:
-  # Watch and list pods
+  # Read pods (for dependency graph and gang member counting)
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "list", "watch"]
-  # Bind pods to nodes
-  - apiGroups: [""]
-    resources: ["pods/binding"]
-    verbs: ["create"]
-  # Update pod status
-  - apiGroups: [""]
-    resources: ["pods/status"]
-    verbs: ["update", "patch"]
-  # List nodes
+  # Read nodes (for scoring)
   - apiGroups: [""]
     resources: ["nodes"]
     verbs: ["get", "list", "watch"]
-  # Create events
+  # Create events (for observability)
   - apiGroups: [""]
     resources: ["events"]
-    verbs: ["create", "patch", "update"]
-  # Read configmaps and secrets (for future config)
-  - apiGroups: [""]
-    resources: ["configmaps", "secrets"]
-    verbs: ["get", "list", "watch"]
+    verbs: ["create", "patch"]
 
 ---
-# ClusterRoleBinding
+# RBAC: Bind the role
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
+  name: nexus-scheduler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
   name: nexus-scheduler
 subjects:
   - kind: ServiceAccount
     name: nexus-scheduler
     namespace: nexus-system
-roleRef:
-  kind: ClusterRole
-  name: nexus-scheduler
-  apiGroup: rbac.authorization.k8s.io
 
 ---
-# Deployment for NEXUS Scheduler
+# NEXUS Scheduler Extender Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -75,6 +69,7 @@ metadata:
   namespace: nexus-system
   labels:
     app: nexus-scheduler
+    component: extender
 spec:
   replicas: 1
   selector:
@@ -84,6 +79,7 @@ spec:
     metadata:
       labels:
         app: nexus-scheduler
+        component: extender
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9099"
@@ -92,42 +88,43 @@ spec:
       serviceAccountName: nexus-scheduler
       containers:
         - name: nexus-scheduler
-          # Replace with your ECR image after pushing
-          image: nexus-scheduler:latest
+          image: nexus-scheduler:v2.0
           imagePullPolicy: IfNotPresent
-          args:
-            - "-v=2"
           ports:
             - containerPort: 9099
-              name: metrics
+              name: http
               protocol: TCP
-          resources:
-            requests:
-              cpu: "50m"
-              memory: "64Mi"
-            limits:
-              cpu: "200m"
-              memory: "256Mi"
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 9099
-            initialDelaySeconds: 10
-            periodSeconds: 10
+          env:
+            - name: PROMETHEUS_URL
+              value: "http://prometheus-server.monitoring:80"
+            - name: SPIKE_QPS_THRESHOLD
+              value: "1000"
+            - name: SPIKE_ERROR_THRESHOLD
+              value: "50"
+            - name: SPIKE_P95_LATENCY_THRESHOLD
+              value: "500"
           readinessProbe:
             httpGet:
               path: /readyz
               port: 9099
             initialDelaySeconds: 5
-            periodSeconds: 5
-      tolerations:
-        # Allow scheduling on control-plane nodes if needed
-        - key: "node-role.kubernetes.io/control-plane"
-          operator: "Exists"
-          effect: "NoSchedule"
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9099
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
 
 ---
-# Service for metrics scraping
+# Service to expose NEXUS to kube-scheduler
 apiVersion: v1
 kind: Service
 metadata:
@@ -142,23 +139,32 @@ spec:
     - port: 9099
       targetPort: 9099
       protocol: TCP
-      name: metrics
+      name: http
   type: ClusterIP
 
 ---
-# ServiceMonitor for Prometheus (optional - requires Prometheus Operator)
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
+# KubeSchedulerConfiguration — tells kube-scheduler about NEXUS
+# NOTE: In Minikube, this needs to be mounted into kube-scheduler.
+# For the research experiment, we can use the --config flag.
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: nexus-scheduler
+  name: nexus-scheduler-policy
   namespace: nexus-system
-  labels:
-    app: nexus-scheduler
-spec:
-  selector:
-    matchLabels:
-      app: nexus-scheduler
-  endpoints:
-    - port: metrics
-      interval: 15s
-      path: /metrics
+data:
+  scheduler-policy.json: |
+    {
+      "kind": "Policy",
+      "apiVersion": "v1",
+      "extenders": [
+        {
+          "urlPrefix": "http://nexus-scheduler.nexus-system.svc.cluster.local:9099",
+          "filterVerb": "filter",
+          "prioritizeVerb": "prioritize",
+          "weight": 5,
+          "enableHttps": false,
+          "managedResources": [],
+          "ignorable": true
+        }
+      ]
+    }
