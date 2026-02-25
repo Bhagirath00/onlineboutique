@@ -1,14 +1,17 @@
 # Build stage
 FROM golang:1.21-alpine AS builder
 
+# Install git (required by go mod tidy)
+RUN apk add --no-cache git
+
 WORKDIR /app
 
-# Copy go.mod first for caching
+# Copy go.mod and source code first
 COPY go.mod ./
-RUN go mod download
-
-# Copy source code
 COPY *.go ./
+
+# Generate go.sum with all dependencies (including transitive ones)
+RUN go mod tidy
 
 # Build the scheduler binary
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o nexus-scheduler .

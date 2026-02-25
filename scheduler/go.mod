@@ -1,4 +1,4 @@
-module github.com/bhagirath00/nexus-scheduler
+module nexus-scheduler
 
 go 1.21
 

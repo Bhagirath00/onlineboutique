@@ -1,0 +1,25 @@
+{
+  "scheduler": "default",
+  "timestamp": "2026-01-08T02:57:42.085720Z",
+  "metrics": {
+    "scheduler_scheduling_latency_p99": null,
+    "scheduler_scheduling_latency_p95": null,
+    "scheduler_scheduling_latency_p50": null,
+    "scheduler_pending_pods": null,
+    "scheduler_attempts_success": null,
+    "scheduler_attempts_error": null,
+    "scheduler_attempts_unschedulable": null,
+    "scheduler_cpu_usage_millicores": null,
+    "scheduler_memory_mb": null,
+    "apiserver_request_rate": null,
+    "apiserver_request_latency_p99": null,
+    "apiserver_cpu_usage_millicores": null,
+    "apiserver_memory_mb": null,
+    "etcd_request_rate": null,
+    "etcd_db_size_mb": null,
+    "node_cpu_utilization_percent": null,
+    "node_memory_utilization_percent": null,
+    "total_running_pods": null,
+    "total_pending_pods": null
+  }
+}

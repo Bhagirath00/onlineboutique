@@ -1,0 +1,191 @@
+# Prometheus Queries for Kubernetes Scheduler Research
+# =====================================================
+# Use these queries in Grafana dashboards or export_metrics.py
+
+# Scheduler Performance Metrics
+scheduler_performance:
+  # Scheduling latency (99th percentile)
+  scheduling_latency_p99: |
+    histogram_quantile(0.99, sum(rate(scheduler_scheduling_duration_seconds_bucket[5m])) by (le))
+  
+  # Scheduling latency (95th percentile)
+  scheduling_latency_p95: |
+    histogram_quantile(0.95, sum(rate(scheduler_scheduling_duration_seconds_bucket[5m])) by (le))
+  
+  # Scheduling latency (50th percentile / median)
+  scheduling_latency_p50: |
+    histogram_quantile(0.50, sum(rate(scheduler_scheduling_duration_seconds_bucket[5m])) by (le))
+  
+  # Pending pods waiting to be scheduled
+  pending_pods: |
+    scheduler_pending_pods
+  
+  # Scheduling attempts by result (scheduled, error, unschedulable)
+  scheduling_attempts: |
+    sum by (result) (rate(scheduler_schedule_attempts_total[5m]))
+  
+  # Pods scheduled per second
+  pods_scheduled_per_second: |
+    sum(rate(scheduler_schedule_attempts_total{result="scheduled"}[5m]))
+  
+  # Preemption attempts
+  preemption_attempts: |
+    rate(scheduler_preemption_attempts_total[5m])
+
+# Control-Plane Overhead
+control_plane:
+  # kube-scheduler CPU (millicores)
+  scheduler_cpu_millicores: |
+    sum(rate(container_cpu_usage_seconds_total{container="kube-scheduler"}[5m])) * 1000
+  
+  # kube-scheduler memory (MB)
+  scheduler_memory_mb: |
+    sum(container_memory_working_set_bytes{container="kube-scheduler"}) / 1024 / 1024
+  
+  # kube-apiserver CPU (millicores)
+  apiserver_cpu_millicores: |
+    sum(rate(container_cpu_usage_seconds_total{container="kube-apiserver"}[5m])) * 1000
+  
+  # kube-apiserver memory (MB)
+  apiserver_memory_mb: |
+    sum(container_memory_working_set_bytes{container="kube-apiserver"}) / 1024 / 1024
+  
+  # kube-controller-manager CPU (millicores)
+  controller_manager_cpu_millicores: |
+    sum(rate(container_cpu_usage_seconds_total{container="kube-controller-manager"}[5m])) * 1000
+  
+  # etcd CPU (millicores)
+  etcd_cpu_millicores: |
+    sum(rate(container_cpu_usage_seconds_total{container="etcd"}[5m])) * 1000
+  
+  # etcd memory (MB)
+  etcd_memory_mb: |
+    sum(container_memory_working_set_bytes{container="etcd"}) / 1024 / 1024
+
+# API Server Metrics
+api_server:
+  # Total request rate (all verbs)
+  total_request_rate: |
+    sum(rate(apiserver_request_total[5m]))
+  
+  # Request rate by verb (GET, POST, PATCH, DELETE, etc.)
+  request_rate_by_verb: |
+    sum by (verb) (rate(apiserver_request_total[5m]))
+  
+  # Request latency (99th percentile)
+  request_latency_p99: |
+    histogram_quantile(0.99, sum(rate(apiserver_request_duration_seconds_bucket[5m])) by (le))
+  
+  # Request errors
+  request_errors: |
+    sum(rate(apiserver_request_total{code=~"5.."}[5m]))
+  
+  # Active connections
+  current_inflight_requests: |
+    apiserver_current_inflight_requests
+
+# etcd Metrics
+etcd:
+  # Request rate
+  request_rate: |
+    sum(rate(etcd_request_duration_seconds_count[5m]))
+  
+  # Database size (MB)
+  db_size_mb: |
+    etcd_mvcc_db_total_size_in_bytes / 1024 / 1024
+  
+  # Keys count
+  keys_total: |
+    etcd_debugging_mvcc_keys_total
+  
+  # Leader changes
+  leader_changes: |
+    rate(etcd_server_leader_changes_seen_total[5m])
+
+# Node Resource Utilization
+node_resources:
+  # CPU utilization per node (%)
+  cpu_utilization_per_node: |
+    100 - (avg by(node) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+  
+  # Average CPU utilization across all nodes (%)
+  avg_cpu_utilization: |
+    avg(100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100))
+  
+  # Memory utilization per node (%)
+  memory_utilization_per_node: |
+    (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100
+  
+  # Average memory utilization (%)
+  avg_memory_utilization: |
+    avg((1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)
+  
+  # Pods per node
+  pods_per_node: |
+    count by (node) (kube_pod_info)
+
+# Pod Metrics
+pods:
+  # Running pods count
+  running_pods: |
+    count(kube_pod_status_phase{phase="Running"})
+  
+  # Pending pods count
+  pending_pods: |
+    count(kube_pod_status_phase{phase="Pending"})
+  
+  # Failed pods count
+  failed_pods: |
+    count(kube_pod_status_phase{phase="Failed"})
+  
+  # Pod restarts
+  pod_restarts: |
+    sum(kube_pod_container_status_restarts_total)
+
+# Volcano-Specific Metrics
+volcano:
+  # Volcano scheduler CPU (millicores)
+  scheduler_cpu_millicores: |
+    sum(rate(container_cpu_usage_seconds_total{container="volcano-scheduler"}[5m])) * 1000
+  
+  # Volcano scheduler memory (MB)
+  scheduler_memory_mb: |
+    sum(container_memory_working_set_bytes{container="volcano-scheduler"}) / 1024 / 1024
+  
+  # Volcano controller CPU (millicores)
+  controller_cpu_millicores: |
+    sum(rate(container_cpu_usage_seconds_total{container="volcano-controllers"}[5m])) * 1000
+  
+  # Volcano controller memory (MB)
+  controller_memory_mb: |
+    sum(container_memory_working_set_bytes{container="volcano-controllers"}) / 1024 / 1024
+  
+  # Jobs in queue
+  jobs_pending: |
+    volcano_job_queue_pending
+
+# NEXUS Scheduler Metrics (Custom)
+nexus:
+  # NEXUS scheduler state (0=IDLE, 1=ACTIVE)
+  scheduler_state: |
+    nexus_scheduler_state
+  
+  # Pending pods in NEXUS queue
+  pending_pods: |
+    nexus_pending_pods
+  
+  # Total pods scheduled by NEXUS
+  pods_scheduled_total: |
+    nexus_pods_scheduled_total
+  
+  # State changes (IDLE <-> ACTIVE transitions)
+  state_changes_total: |
+    nexus_state_changes_total
+  
+  # NEXUS CPU (millicores)
+  scheduler_cpu_millicores: |
+    sum(rate(container_cpu_usage_seconds_total{container="nexus-scheduler"}[5m])) * 1000
+  
+  # NEXUS memory (MB)
+  scheduler_memory_mb: |
+    sum(container_memory_working_set_bytes{container="nexus-scheduler"}) / 1024 / 1024
