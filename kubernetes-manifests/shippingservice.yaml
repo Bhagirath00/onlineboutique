@@ -20,11 +20,8 @@ spec:
   selector:
     matchLabels:
       app: shippingservice
-  template:
-    metadata:
-      labels:
-        app: shippingservice
-    spec:
+  
+      schedulerName: nexus-scheduler
       serviceAccountName: default
       containers:
       - name: server
@@ -69,3 +66,4 @@ spec:
   - name: grpc
     port: 50051
     targetPort: 50051
+

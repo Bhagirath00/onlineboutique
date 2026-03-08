@@ -20,11 +20,8 @@ spec:
   selector:
     matchLabels:
       app: recommendationservice
-  template:
-    metadata:
-      labels:
-        app: recommendationservice
-    spec:
+  
+      schedulerName: nexus-scheduler
       serviceAccountName: default
       terminationGracePeriodSeconds: 5
       containers:
@@ -71,3 +68,4 @@ spec:
   - name: grpc
     port: 8080
     targetPort: 8080
+

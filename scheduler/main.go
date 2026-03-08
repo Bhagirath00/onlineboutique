@@ -361,8 +361,12 @@ func (s *NEXUSScheduler) checkForSpike(ctx context.Context) {
 				return
 			}
 
-			// Stage 3 & 4: Form gangs from the graph
+			// Stage 3: Identify critical path members
+			s.gangManager.SetStage(GangStageCriticalPath)
 			groups := s.depGraph.GetGroups()
+			klog.Infof("Critical path identified: %d paths to optimize", len(groups))
+
+			// Stage 4 & 5: Form gangs from the graph and start scheduling
 			if len(groups) > 0 {
 				s.gangManager.FormGangs(groups)
 				s.gangManager.SetStage(GangStageScheduling)

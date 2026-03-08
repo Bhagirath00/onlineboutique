@@ -20,11 +20,8 @@ spec:
   selector:
     matchLabels:
       app: productcatalogservice
-  template:
-    metadata:
-      labels:
-        app: productcatalogservice
-    spec:
+  
+      schedulerName: nexus-scheduler
       serviceAccountName: default
       terminationGracePeriodSeconds: 5
       containers:
@@ -69,3 +66,4 @@ spec:
   - name: grpc
     port: 3550
     targetPort: 3550
+

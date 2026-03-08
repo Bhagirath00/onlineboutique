@@ -20,11 +20,8 @@ spec:
   selector:
     matchLabels:
       app: paymentservice
-  template:
-    metadata:
-      labels:
-        app: paymentservice
-    spec:
+  
+      schedulerName: nexus-scheduler
       serviceAccountName: default
       terminationGracePeriodSeconds: 5
       containers:
@@ -67,3 +64,4 @@ spec:
   - name: grpc
     port: 50051
     targetPort: 50051
+

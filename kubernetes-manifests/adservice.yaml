@@ -20,11 +20,9 @@ spec:
   selector:
     matchLabels:
       app: adservice
-  template:
-    metadata:
-      labels:
-        app: adservice
-    spec:
+  
+      schedulerName: nexus-scheduler
+      schedulerName: nexus-scheduler
       serviceAccountName: default
       terminationGracePeriodSeconds: 5
       containers:
@@ -71,3 +69,4 @@ spec:
   - name: grpc
     port: 9555
     targetPort: 9555
+

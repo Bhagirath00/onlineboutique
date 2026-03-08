@@ -32,12 +32,13 @@ type GangStage int
 
 const (
 	GangStageNone       GangStage = iota // No gang exists
-	GangStageDetected                    // Spike detected
-	GangStageGraphBuilt                  // Dependency graph constructed
-	GangStageFormed                      // Gang created
-	GangStageScheduling                  // Scheduling hints active
-	GangStageCooldown                    // Spike ended, waiting
-	GangStageDissolved                   // Gang dissolved
+	GangStageDetected                    // Stage 1: Spike detected
+	GangStageGraphBuilt                  // Stage 2: Dependency graph constructed
+	GangStageCriticalPath                // Stage 3: Critical path identified
+	GangStageFormed                      // Stage 4: Temporary gang created
+	GangStageScheduling                  // Stage 5: Scheduling hints active
+	GangStageCooldown                    // Stage 6: Spike window ends
+	GangStageDissolved                   // Stage 7: Gang dissolved
 )
 
 func (s GangStage) String() string {
@@ -48,14 +49,16 @@ func (s GangStage) String() string {
 		return "SPIKE_DETECTED"
 	case GangStageGraphBuilt:
 		return "GRAPH_BUILT"
+	case GangStageCriticalPath:
+		return "CRITICAL_PATH_IDENTIFIED"
 	case GangStageFormed:
 		return "GANG_FORMED"
 	case GangStageScheduling:
 		return "SCHEDULING"
 	case GangStageCooldown:
-		return "COOLDOWN"
+		return "SPIKE_ENDED"
 	case GangStageDissolved:
-		return "DISSOLVED"
+		return "GANG_DISSOLVED"
 	default:
 		return "UNKNOWN"
 	}
