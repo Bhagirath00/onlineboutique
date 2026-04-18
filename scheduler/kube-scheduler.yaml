@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus-scheduler-wrapper
+  namespace: nexus-system
+  labels:
+    component: scheduler
+    tier: control-plane
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: scheduler
+      tier: control-plane
+  template:
+    metadata:
+      labels:
+        component: scheduler
+        tier: control-plane
+    spec:
+      serviceAccountName: nexus-scheduler
+      containers:
+        - name: kube-scheduler
+          image: registry.k8s.io/kube-scheduler:v1.29.0
+          command:
+            - kube-scheduler
+            - --config=/etc/kubernetes/scheduler-config.yaml
+            - --v=10
+            - --leader-elect=false
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/kubernetes
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: nexus-scheduler-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-scheduler-config
+  namespace: nexus-system
+data:
+  scheduler-config.yaml: |
+    apiVersion: kubescheduler.config.k8s.io/v1
+    kind: KubeSchedulerConfiguration
+    profiles:
+      - schedulerName: nexus-scheduler
+        plugins:
+          multiPoint:
+            enabled:
+              - name: "*"
+    extenders:
+      - urlPrefix: "http://nexus-scheduler.nexus-system.svc.cluster.local:9099"
+        filterVerb: "filter"
+        prioritizeVerb: "prioritize"
+        weight: 5
+        managedResources: []
+        ignorable: true

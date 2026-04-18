@@ -25,6 +25,7 @@ spec:
       labels:
         app: emailservice
     spec:
+      schedulerName: nexus-scheduler
       serviceAccountName: default
       terminationGracePeriodSeconds: 5
       containers:
@@ -67,3 +68,4 @@ spec:
   - name: grpc
     port: 5000
     targetPort: 8080
+

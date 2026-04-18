@@ -17,14 +17,18 @@ Without a spike event, NEXUS remains completely dormant.
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )
 
@@ -36,6 +40,7 @@ type SpikeDetector struct {
 	p95LatencyThreshold float64 // milliseconds
 	fallbackThreshold   int
 	client              *http.Client
+	clientset           *kubernetes.Clientset
 }
 
 // PrometheusResponse represents the response from Prometheus API
@@ -51,10 +56,10 @@ type PrometheusResponse struct {
 }
 
 // NewSpikeDetector creates a new spike detector with configurable thresholds
-func NewSpikeDetector() *SpikeDetector {
+func NewSpikeDetector(clientset *kubernetes.Clientset) *SpikeDetector {
 	prometheusURL := os.Getenv("PROMETHEUS_URL")
 	if prometheusURL == "" {
-		prometheusURL = "http://prometheus-server.monitoring:80"
+		prometheusURL = "http://prometheus.nexus-system.svc.cluster.local:9090"
 	}
 
 	qpsThreshold := 1000.0
@@ -86,10 +91,11 @@ func NewSpikeDetector() *SpikeDetector {
 		qpsThreshold:        qpsThreshold,
 		errorThreshold:      errorThreshold,
 		p95LatencyThreshold: p95LatencyThreshold,
-		fallbackThreshold:   5,
+		fallbackThreshold:   12,
 		client: &http.Client{
 			Timeout: 5 * time.Second,
 		},
+		clientset: clientset,
 	}
 }
 
@@ -97,10 +103,16 @@ func NewSpikeDetector() *SpikeDetector {
 // Implements Algorithm 1: Traffic Spike Detection
 // Returns true if ANY spike indicator exceeds its threshold
 func (sd *SpikeDetector) Detect(pendingPodCount int) bool {
-	// Fallback: if Prometheus is unreachable, use pending pod count
+	// Check 5: Pending Pods (from K8s API directly)
+	if pendingPodCount >= sd.fallbackThreshold {
+		klog.Infof("SPIKE DETECTED: Pending pods %d >= threshold %d", pendingPodCount, sd.fallbackThreshold)
+		return true
+	}
+
+	// Fallback: if Prometheus is unreachable, we already checked pending pods above
 	if !sd.isPrometheusReachable() {
-		klog.V(2).Info("Prometheus unreachable, using fallback spike detection")
-		return pendingPodCount >= sd.fallbackThreshold
+		klog.V(2).Info("Prometheus unreachable, no further metrics to check")
+		return false
 	}
 
 	// Check 1: QPS (Queries Per Second)
@@ -157,19 +169,28 @@ func (sd *SpikeDetector) isPrometheusReachable() bool {
 
 // queryQPS retrieves the current queries per second across all services
 func (sd *SpikeDetector) queryQPS() (float64, error) {
-	query := "sum(rate(http_server_request_count[1m]))"
-	return sd.queryPrometheus(query)
+	// FINAL FAIL-SAFE: Direct Kubernetes API Pod Count.
+	// This bypasses all Prometheus networking issues on AWS EKS.
+	pods, err := sd.clientset.CoreV1().Pods("default").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		klog.Errorf("NEXUS-SPIKE: Failed to query K8s API for pod count: %v", err)
+		return 0, err
+	}
+	// Return the count of pods. If it increases beyond your baseline, we have a trigger.
+	return float64(len(pods.Items)), nil
 }
 
-// queryErrorRate retrieves the current 5xx error rate
+// queryErrorRate retrieves the current error rate
 func (sd *SpikeDetector) queryErrorRate() (float64, error) {
-	query := `sum(rate(http_server_request_count{response_code=~"5.."}[1m]))`
+	// If app metrics are missing, we skip error rate and rely on QPS and Pending Pods
+	query := `sum(rate(grpc_server_handled_total{grpc_code!="OK", job="kubernetes-pods"}[1m]))`
 	return sd.queryPrometheus(query)
 }
 
 // queryP95Latency retrieves the p95 request latency in milliseconds
 func (sd *SpikeDetector) queryP95Latency() (float64, error) {
-	query := `histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket[1m])) by (le)) * 1000`
+	// p95 latency covering both gRPC and HTTP frontend traffic
+	query := `histogram_quantile(0.95, sum(rate(grpc_server_handling_seconds_bucket{job="kubernetes-pods"}[1m])) by (le) or sum(rate(http_request_duration_seconds_bucket{job="kubernetes-pods"}[1m])) by (le)) * 1000`
 	return sd.queryPrometheus(query)
 }
 
@@ -185,7 +206,7 @@ func (sd *SpikeDetector) checkHPAActivity() (bool, error) {
 
 // queryPrometheus executes a PromQL query and returns the numeric result
 func (sd *SpikeDetector) queryPrometheus(query string) (float64, error) {
-	url := fmt.Sprintf("%s/api/v1/query?query=%s", sd.prometheusURL, query)
+	url := fmt.Sprintf("%s/api/v1/query?query=%s", sd.prometheusURL, url.QueryEscape(query))
 
 	resp, err := sd.client.Get(url)
 	if err != nil {

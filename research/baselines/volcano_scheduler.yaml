@@ -1,0 +1,180 @@
+---
+# NEXUS Research - Volcano Scheduler Deployment
+# =============================================
+#
+# Deploys Volcano scheduler for gang scheduling baseline.
+# Volcano runs alongside kube-scheduler, not replacing it.
+# Uses PriorityClass and PodGroup for gang scheduling.
+#
+# Usage:
+#   kubectl apply -f research/baselines/volcano_scheduler.yaml
+#   kubectl apply -f research/baselines/volcano_online_boutique.yaml
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: volcano-system
+---
+# ClusterRole for Volcano scheduler
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: volcano-scheduler
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "patch", "update", "bind"]
+  - apiGroups: [""]
+    resources: ["pods/status"]
+    verbs: ["update", "patch"]
+  - apiGroups: ["extensions", "batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["volcano.sh"]
+    resources: ["podgroups"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["scheduling.k8s.io"]
+    resources: ["priorityclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch", "update"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: volcano-scheduler
+  namespace: volcano-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: volcano-scheduler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: volcano-scheduler
+subjects:
+  - kind: ServiceAccount
+    name: volcano-scheduler
+    namespace: volcano-system
+---
+# Volcano Scheduler Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: volcano-scheduler
+  namespace: volcano-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: volcano-scheduler
+  template:
+    metadata:
+      labels:
+        app: volcano-scheduler
+        version: v1.8
+    spec:
+      serviceAccountName: volcano-scheduler
+      containers:
+        - name: scheduler
+          image: volcanosh/volcano:v1.8
+          command:
+            - sh
+            - -c
+            - |
+              /bin/volcano-scheduler \
+                --logtostderr \
+                -v 4 \
+                --scheduler-conf=/etc/volcano/scheduler.conf \
+                --kubeconfig=/etc/kubeconfig/kubeconfig \
+                --master=https://kubernetes.default:443
+          env:
+            - name: KUBECONFIG
+              value: /etc/kubeconfig/kubeconfig
+          volumeMounts:
+            - name: scheduler-config
+              mountPath: /etc/volcano
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: scheduler-config
+          configMap:
+            name: volcano-scheduler-config
+---
+# Volcano Scheduler Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volcano-scheduler-config
+  namespace: volcano-system
+data:
+  scheduler.conf: |
+    actions: "enqueue, allocate, backfill"
+    tiers:
+      - plugins:
+          - name: priority
+          - name: gang
+          - name: conformance
+      - plugins:
+          - name: drf
+          - name: predicates
+          - name: nodeorder
+    plugins:
+      - name: priority
+        enablePreemption: true
+      - name: gang
+        gangScheduleInterval: 5s
+        totalResourceTimeout: 300s
+        childScheduleIntervalSec: 300s
+      - name: conformance
+      - name: drf
+        shareWeight: map
+      - name: predicates
+        predicate:
+          - name: NodeUnschedulable
+          - name: NodeResourcesFit
+          - name: NodeHostName
+          - name: PodFitsHost
+      - name: nodeorder
+        nodeScorePlugin:
+          - name: LeastAllocated
+          - name: BalancedAllocation
+---
+# Service for Volcano Scheduler metrics
+apiVersion: v1
+kind: Service
+metadata:
+  name: volcano-scheduler
+  namespace: volcano-system
+  labels:
+    app: volcano-scheduler
+spec:
+  selector:
+    app: volcano-scheduler
+  ports:
+    - name: http-metrics
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+# PriorityClass for gang-scheduled workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: volcano-gang-scheduling
+value: 1000
+globalDefault: false
+description: "Priority class for Volcano gang-scheduled workloads"

@@ -40,44 +40,10 @@
 
 ## Project goals (this repo)
 
-- Deploy Online Boutique locally (Minikube) or on AWS (EKS)
+- Deploy Online Boutique on AWS EKS for high-fidelity research
+- Implement NEXUS: An Event-Driven Scheduler Extender for Spike Handling
 - Practice IaC using Terraform and Kubernetes manifests
-- Keep credentials out of git (use `.env` + `.gitignore`)
-
-## Screenshots
-
-| Home Page                                                                                                               | Checkout Screen                                                                                                          |
-| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| [![Screenshot of store homepage](./docs/img/online-boutique-frontend-1.png)](./docs/img/online-boutique-frontend-1.png) | [![Screenshot of checkout screen](./docs/img/online-boutique-frontend-2.png)](./docs/img/online-boutique-frontend-2.png) |
-
-## Quickstart (Local Kubernetes - Minikube)
-
-1. Start Minikube:
-
-```powershell
-minikube start --driver=docker
-kubectl get nodes
-```
-
-2. Deploy the app (use deployable manifests under `/release`):
-
-```powershell
-kubectl apply -f release/kubernetes-manifests.yaml
-kubectl get pods
-```
-
-3. Open the frontend:
-
-```powershell
-minikube service frontend-external
-```
-
-4. Cleanup:
-
-```powershell
-kubectl delete -f release/kubernetes-manifests.yaml
-minikube delete
-```
+- Maintain production-grade observability with Prometheus and Grafana
 
 ## Quickstart (AWS EKS - Terraform)
 

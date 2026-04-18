@@ -1,0 +1,303 @@
+---
+# NEXUS Research - Grafana Dashboard
+# ===================================
+# 
+# Real-time monitoring dashboard for scheduler comparison
+# Shows key metrics for all 4 baselines in one view
+# 
+# Installation:
+#   1. Deploy Grafana (if not already deployed)
+#   2. Add Prometheus as datasource
+#   3. Import this dashboard via JSON upload
+#   4. View live metrics during experiments
+# 
+# Usage:
+#   kubectl apply -f research/baselines/grafana_dashboard.yaml
+#   kubectl port-forward -n nexus-system svc/grafana 3000:3000
+#   # Visit http://localhost:3000 (admin/admin)
+#   # Import dashboard from JSON
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-research-dashboard
+  namespace: nexus-system
+data:
+  dashboard.json: |
+    {
+      "dashboard": {
+        "title": "NEXUS Research - Scheduler Comparison",
+        "description": "Real-time comparison of Default, Volcano, Static Affinity, and NEXUS schedulers",
+        "tags": ["nexus", "research", "scheduler", "comparison"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Scheduler CPU Usage (ms) - Key Metric #1",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "rate(scheduler_cpu_seconds_total[1m]) * 1000",
+                "legendFormat": "{{scheduler}}"
+              }
+            ],
+            "yaxes": [
+              {"label": "CPU (ms)", "format": "short"},
+              {"label": "", "format": "short"}
+            ],
+            "alert": {
+              "name": "High Scheduler CPU",
+              "conditions": [
+                {
+                  "evaluator": {"params": [10], "type": "gt"},
+                  "operator": {"type": "and"},
+                  "query": {"params": ["A", "5m", "now"]},
+                  "reducer": {"params": [], "type": "avg"},
+                  "type": "query"
+                }
+              ]
+            }
+          },
+          {
+            "id": 2,
+            "title": "Request Latency p99 (ms) - Key Metric #2",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.99, rate(request_duration_seconds_bucket[1m])) * 1000",
+                "legendFormat": "p99"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(request_duration_seconds_bucket[1m])) * 1000",
+                "legendFormat": "p95"
+              },
+              {
+                "expr": "histogram_quantile(0.50, rate(request_duration_seconds_bucket[1m])) * 1000",
+                "legendFormat": "p50"
+              }
+            ],
+            "yaxes": [
+              {"label": "Latency (ms)", "format": "short"},
+              {"label": "", "format": "short"}
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Pending Pods Count - Key Metric #3",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "kubernetes_pods_pending_total",
+                "legendFormat": "Pending Pods"
+              }
+            ],
+            "yaxes": [
+              {"label": "Pod Count", "format": "short"},
+              {"label": "", "format": "short"}
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Pod Scheduling Rate - Key Metric #4",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "rate(pods_scheduled_total[1m])",
+                "legendFormat": "Pods/sec"
+              }
+            ],
+            "yaxes": [
+              {"label": "Pods per Second", "format": "short"},
+              {"label": "", "format": "short"}
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Scheduler Memory Usage (MB)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "scheduler_memory_mb",
+                "legendFormat": "{{scheduler}} Memory"
+              }
+            ],
+            "yaxes": [
+              {"label": "Memory (MB)", "format": "short"},
+              {"label": "", "format": "short"}
+            ]
+          },
+          {
+            "id": 6,
+            "title": "API Server Request Rate",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "rate(apiserver_request_total[1m])",
+                "legendFormat": "Requests/sec"
+              }
+            ],
+            "yaxes": [
+              {"label": "Requests/sec", "format": "short"},
+              {"label": "", "format": "short"}
+            ]
+          },
+          {
+            "id": 7,
+            "title": "Pod Co-Location Percentage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
+            "targets": [
+              {
+                "expr": "(1 - pod_placement_cross_node_ratio) * 100",
+                "legendFormat": "Co-Location %"
+              }
+            ],
+            "yaxes": [
+              {"label": "Percentage (%)", "format": "short", "max": 100},
+              {"label": "", "format": "short"}
+            ]
+          },
+          {
+            "id": 8,
+            "title": "NEXUS Scheduler State (active experiments only)",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 32},
+            "targets": [
+              {
+                "expr": "nexus_scheduler_state",
+                "legendFormat": "State"
+              }
+            ],
+            "thresholds": [
+              {"value": 0, "color": "green", "label": "IDLE"},
+              {"value": 1, "color": "yellow", "label": "ACTIVE"},
+              {"value": 2, "color": "blue", "label": "COOLDOWN"}
+            ]
+          },
+          {
+            "id": 9,
+            "title": "NEXUS Activation Count",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 6, "y": 32},
+            "targets": [
+              {
+                "expr": "nexus_activation_count",
+                "legendFormat": "Activations"
+              }
+            ],
+            "colorMode": "background"
+          },
+          {
+            "id": 10,
+            "title": "NEXUS Gang Formations",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 12, "y": 32},
+            "targets": [
+              {
+                "expr": "nexus_gang_formations_total",
+                "legendFormat": "Gangs"
+              }
+            ]
+          },
+          {
+            "id": 11,
+            "title": "NEXUS Activation Latency p99 (ms)",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 18, "y": 32},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.99, rate(nexus_activation_latency_ms_bucket[1m]))",
+                "legendFormat": "Latency"
+              }
+            ],
+            "sparkline": {"show": true},
+            "thresholds": ["500"]
+          },
+          {
+            "id": 12,
+            "title": "Comparison Summary Table",
+            "type": "table",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 36},
+            "targets": [
+              {
+                "format": "table",
+                "instant": true,
+                "refId": "A"
+              }
+            ]
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "timepicker": {
+          "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+        },
+        "refresh": "5s"
+      }
+    }
+
+---
+# Grafana Deployment for NEXUS Research
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: nexus-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "admin"
+            - name: GF_USERS_ALLOW_SIGN_UP
+              value: "false"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: dashboards
+              mountPath: /var/lib/grafana/dashboards
+      volumes:
+        - name: dashboards
+          configMap:
+            name: nexus-research-dashboard
+
+---
+# Service for Grafana
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: nexus-system
+spec:
+  selector:
+    app: grafana
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP

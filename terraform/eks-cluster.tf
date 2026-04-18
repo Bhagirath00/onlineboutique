@@ -1,23 +1,39 @@
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "19.15.3"
+  version = "~> 20.8.2"
 
-  cluster_name    = var.cluster_name
-  cluster_version = "1.29"
+  cluster_name    = "nexus-cluster"
+  cluster_version = "1.28"
 
-  cluster_endpoint_public_access = true
+  cluster_endpoint_public_access  = true
+  cluster_endpoint_private_access = true
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
   eks_managed_node_groups = {
-    general = {
-      desired_size = 4
+    region_a_high_cpu = {
+      instance_types = ["t3.medium"]
+      ami_type       = "AL2_x86_64"
       min_size     = 1
-      max_size     = 5
-
+      max_size     = 4
+      desired_size = 3
+      labels = {
+        region   = "region-a"
+        cpu-tier = "high"
+      }
+    }
+    region_b_standard = {
       instance_types = ["t3.small"]
-      capacity_type  = "SPOT"
+      ami_type       = "AL2_x86_64"
+      min_size     = 1
+      max_size     = 4
+      desired_size = 3
+      labels = {
+        region   = "region-b"
+        cpu-tier = "standard"
+      }
     }
   }
 }
+

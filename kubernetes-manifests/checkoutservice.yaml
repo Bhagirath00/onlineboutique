@@ -25,6 +25,7 @@ spec:
       labels:
         app: checkoutservice
     spec:
+      schedulerName: nexus-scheduler
       serviceAccountName: default
       containers:
         - name: server
@@ -80,3 +81,4 @@ spec:
   - name: grpc
     port: 5050
     targetPort: 5050
+

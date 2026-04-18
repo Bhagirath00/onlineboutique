@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: locust-script
+  namespace: nexus-system
+data:
+  locustfile.py: |
+    import random
+    from locust import HttpUser, task, between
+
+    class OnlineBoutiqueUser(HttpUser):
+        wait_time = between(1, 2.5)
+
+        @task(5)
+        def browse_products(self):
+            self.client.get("/")
+
+        @task(2)
+        def view_product(self):
+            product_ids = [
+                'OLJCESPC7Z', '66VCHSJNUP', '0PUK6V6EV0', 
+                '9SIQT8TOJO', '1YMWWN1N4O', 'L9ECAV7KIM'
+            ]
+            self.client.get(f"/product/{random.choice(product_ids)}")
+
+        @task(1)
+        def add_to_cart(self):
+            product_ids = [
+                'OLJCESPC7Z', '66VCHSJNUP', '0PUK6V6EV0'
+            ]
+            self.client.post("/cart", data={
+                "product_id": random.choice(product_ids),
+                "quantity": random.randint(1, 5)
+            })
+
+        @task(1)
+        def view_cart(self):
+            self.client.get("/cart")
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locust
+  namespace: nexus-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: locust
+  template:
+    metadata:
+      labels:
+        app: locust
+    spec:
+      containers:
+        - name: locust
+          image: locustio/locust:2.15.1
+          args:
+            - "-f"
+            - "/mnt/locust/locustfile.py"
+            - "--host"
+            - "http://frontend.default.svc.cluster.local"
+          ports:
+            - containerPort: 8089
+              name: loc-web
+          volumeMounts:
+            - name: script-volume
+              mountPath: /mnt/locust
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+      volumes:
+        - name: script-volume
+          configMap:
+            name: locust-script
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: locust
+  namespace: nexus-system
+spec:
+  selector:
+    app: locust
+  ports:
+    - port: 8089
+      targetPort: 8089
+  type: ClusterIP

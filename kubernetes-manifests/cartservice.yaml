@@ -25,6 +25,7 @@ spec:
       labels:
         app: cartservice
     spec:
+      schedulerName: nexus-scheduler
       serviceAccountName: default
       terminationGracePeriodSeconds: 5
       containers:
@@ -64,3 +65,4 @@ spec:
   - name: grpc
     port: 7070
     targetPort: 7070
+

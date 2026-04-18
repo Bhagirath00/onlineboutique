@@ -32,18 +32,28 @@ kind: ClusterRole
 metadata:
   name: nexus-scheduler
 rules:
-  # Read pods (for dependency graph and gang member counting)
+  # Full scheduler permissions
   - apiGroups: [""]
-    resources: ["pods"]
+    resources: ["pods", "nodes", "namespaces", "configmaps", "persistentvolumeclaims", "persistentvolumes", "replicationcontrollers", "services"]
     verbs: ["get", "list", "watch"]
-  # Read nodes (for scoring)
   - apiGroups: [""]
-    resources: ["nodes"]
+    resources: ["pods/binding", "pods/status"]
+    verbs: ["patch", "update", "create"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets", "statefulsets"]
     verbs: ["get", "list", "watch"]
-  # Create events (for observability)
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses", "csinodes", "csidrivers", "csistoragecapacities"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
   - apiGroups: [""]
     resources: ["events"]
-    verbs: ["create", "patch"]
+    verbs: ["create", "patch", "update"]
 
 ---
 # RBAC: Bind the role
@@ -88,15 +98,15 @@ spec:
       serviceAccountName: nexus-scheduler
       containers:
         - name: nexus-scheduler
-          image: nexus-scheduler:v2.0
-          imagePullPolicy: IfNotPresent
+          image: 335169716512.dkr.ecr.us-east-1.amazonaws.com/nexus-scheduler:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 9099
               name: http
               protocol: TCP
           env:
             - name: PROMETHEUS_URL
-              value: "http://prometheus-server.monitoring:80"
+              value: "http://prometheus.nexus-system:9090"
             - name: SPIKE_QPS_THRESHOLD
               value: "1000"
             - name: SPIKE_ERROR_THRESHOLD

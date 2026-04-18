@@ -31,13 +31,15 @@ import (
 type GangStage int
 
 const (
-	GangStageNone       GangStage = iota // No gang exists
-	GangStageDetected                    // Spike detected
-	GangStageGraphBuilt                  // Dependency graph constructed
-	GangStageFormed                      // Gang created
-	GangStageScheduling                  // Scheduling hints active
-	GangStageCooldown                    // Spike ended, waiting
-	GangStageDissolved                   // Gang dissolved
+	GangStageNone         GangStage = iota // Stage 0
+	GangStageDetected                      // Stage 1: Spike detected
+	GangStageGraphBuilt                    // Stage 2: Dependency graph constructed
+	GangStageCriticalPath                  // Stage 3: Critical path identified
+	GangStageFormed                      // Stage 4: Temporary gang created
+	GangStageActive                        // Stage 5: Scheduling hints active (Gang live)
+	GangStagePlaced                        // Stage 6: Pods placed by scheduler
+	GangStageCooldown                      // Stage 7: Spike window ends (Cooldown)
+	GangStageDissolved                     // Stage 8: Gang dissolved
 )
 
 func (s GangStage) String() string {
@@ -48,14 +50,18 @@ func (s GangStage) String() string {
 		return "SPIKE_DETECTED"
 	case GangStageGraphBuilt:
 		return "GRAPH_BUILT"
+	case GangStageCriticalPath:
+		return "CRITICAL_PATH_IDENTIFIED"
 	case GangStageFormed:
 		return "GANG_FORMED"
-	case GangStageScheduling:
-		return "SCHEDULING"
+	case GangStageActive:
+		return "GANG_ACTIVE"
+	case GangStagePlaced:
+		return "PODS_PLACED"
 	case GangStageCooldown:
-		return "COOLDOWN"
+		return "COOLDOWN_STARTED"
 	case GangStageDissolved:
-		return "DISSOLVED"
+		return "GANG_DISSOLVED"
 	default:
 		return "UNKNOWN"
 	}
@@ -174,11 +180,28 @@ func (gm *GangManager) UpdateNodePreference(serviceName, nodeName string) {
 
 	gang := gm.activeGangs[gangID]
 	if gang != nil {
+		if gang.NodePrefs == nil {
+			gang.NodePrefs = make(map[string]int)
+		}
 		gang.NodePrefs[nodeName]++
 		klog.V(2).Infof("Updated node preference for gang %s: %s → %s (count: %d)",
 			gangID, serviceName, nodeName, gang.NodePrefs[nodeName])
 	}
 }
+
+// GetNodePreference returns the count of gang members on a specific node
+func (gm *GangManager) GetNodePreference(gangID, nodeName string) int {
+	gm.mu.RLock()
+	defer gm.mu.RUnlock()
+
+	gang, exists := gm.activeGangs[gangID]
+	if !exists || gang.NodePrefs == nil {
+		return 0
+	}
+
+	return gang.NodePrefs[nodeName]
+}
+
 
 // HasActiveGangs returns true if any gangs are currently active
 func (gm *GangManager) HasActiveGangs() bool {

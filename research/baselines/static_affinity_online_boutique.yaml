@@ -1,0 +1,425 @@
+---
+# NEXUS Research - Static Pod Affinity Baseline
+# =============================================
+#
+# Applies static pod affinity rules to Online Boutique services.
+# Uses Kubernetes native PodAffinity to co-locate services.
+# No active scheduling logic - all co-location rules are static.
+#
+# Usage:
+#   kubectl apply -f research/baselines/static_affinity_online_boutique.yaml
+#
+# Theory:
+#   By defining service dependencies upfront via podAffinity,
+#   we approximate gang scheduling without requiring active coordination.
+#   Services marked with affinity rules will be scheduled together.
+#
+# Expected vs NEXUS:
+#   - Similar latency (services are co-located)
+#   - Worse scalability (affinity rules prevent flexible placement)
+#   - Higher unschedulable pod rate (tighter constraints)
+#   - Lower scheduling flexibility (wastes resources)
+
+# StatefulSet patches to add pod affinity rules
+# Apply these patches over the standard Online Boutique manifests
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: static-affinity-config
+  namespace: default
+data:
+  description: |
+    Static Pod Affinity Rules for Online Boutique
+    
+    Service dependency graph:
+    - frontend → [cartservice, currencyservice]
+    - cartservice → [] (stateless, but co-located with checkout path)
+    - checkoutservice → [cartservice, paymentservice, currencyservice]
+    - paymentservice → [currencyservice]
+    - currencyservice → [] (core dependency, lightweight)
+    - recommendationservice → [productcatalogservice]
+    - productcatalogservice → []
+    - shippingservice → []
+    - emailservice → []
+    - adservice → []
+    - redis → [] (cache backend for cartservice)
+---
+# Checkout Service with Static Affinity Rules
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkoutservice-affinity
+  namespace: default
+  labels:
+    app: checkoutservice-affinity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: checkoutservice-affinity
+  template:
+    metadata:
+      labels:
+        app: checkoutservice-affinity
+        tier: checkout
+        experiment-baseline: static-affinity
+    spec:
+      serviceAccountName: default
+      
+      # Pod affinity: co-locate with cartservice, paymentservice, currencyservice
+      affinity:
+        podAffinity:
+          # REQUIRED: Must be scheduled on same node as cartservice
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - cartservice
+                    weight: 100
+              topologyKey: kubernetes.io/hostname
+          
+          # SOFT PREFERENCE: Try to co-locate with paymentservice
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - paymentservice
+                topologyKey: kubernetes.io/hostname
+            
+            # SOFT PREFERENCE: Try to co-locate with currencyservice
+            - weight: 40
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - currencyservice
+                topologyKey: kubernetes.io/hostname
+        
+        # Pod anti-affinity: spread multiple replicas across nodes
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAntiAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - checkoutservice-affinity
+                topologyKey: kubernetes.io/hostname
+      
+      containers:
+        - name: server
+          image: gcr.io/google-samples/microservices-demo/checkoutservice:v0.5.2
+          ports:
+            - containerPort: 5050
+          env:
+            - name: PORT
+              value: "5050"
+            - name: PRODUCT_CATALOG_SERVICE_ADDR
+              value: "productcatalogservice:3550"
+            - name: CART_SERVICE_ADDR
+              value: "cartservice:7070"
+            - name: CURRENCY_SERVICE_ADDR
+              value: "currencyservice:7000"
+            - name: EMAIL_SERVICE_ADDR
+              value: "emailservice:5000"
+            - name: PAYMENT_SERVICE_ADDR
+              value: "paymentservice:50051"
+            - name: SHIPPING_SERVICE_ADDR
+              value: "shippingservice:50050"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+---
+# Payment Service with Static Affinity Rules
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paymentservice-affinity
+  namespace: default
+  labels:
+    app: paymentservice-affinity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: paymentservice-affinity
+  template:
+    metadata:
+      labels:
+        app: paymentservice-affinity
+        tier: payment
+        experiment-baseline: static-affinity
+    spec:
+      serviceAccountName: default
+      
+      # Pod affinity: co-locate with currencyservice
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 80
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - currencyservice
+                topologyKey: kubernetes.io/hostname
+      
+      containers:
+        - name: server
+          image: gcr.io/google-samples/microservices-demo/paymentservice:v0.5.2
+          ports:
+            - containerPort: 50051
+          env:
+            - name: PORT
+              value: "50051"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+---
+# Currency Service (core dependency, lightweight)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: currencyservice-affinity
+  namespace: default
+  labels:
+    app: currencyservice-affinity
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: currencyservice-affinity
+  template:
+    metadata:
+      labels:
+        app: currencyservice-affinity
+        tier: currency
+        experiment-baseline: static-affinity
+    spec:
+      serviceAccountName: default
+      
+      containers:
+        - name: server
+          image: gcr.io/google-samples/microservices-demo/currencyservice:v0.5.2
+          ports:
+            - containerPort: 7000
+          env:
+            - name: PORT
+              value: "7000"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+
+---
+# Cart Service - co-locate with checkout
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartservice-affinity
+  namespace: default
+  labels:
+    app: cartservice-affinity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cartservice-affinity
+  template:
+    metadata:
+      labels:
+        app: cartservice-affinity
+        tier: cart
+        experiment-baseline: static-affinity
+    spec:
+      serviceAccountName: default
+      
+      affinity:
+        # Spread replicas across nodes
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAntiAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - cartservice-affinity
+                topologyKey: kubernetes.io/hostname
+      
+      containers:
+        - name: server
+          image: gcr.io/google-samples/microservices-demo/cartservice:v0.5.2
+          ports:
+            - containerPort: 7070
+          env:
+            - name: REDIS_ADDR
+              value: "redis:6379"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+---
+# Frontend Service with affinity to payment/checkout path
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-affinity
+  namespace: default
+  labels:
+    app: frontend-affinity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend-affinity
+  template:
+    metadata:
+      labels:
+        app: frontend-affinity
+        tier: frontend
+        experiment-baseline: static-affinity
+    spec:
+      serviceAccountName: default
+      
+      affinity:
+        # Soft preference: co-locate with checkout path services
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: tier
+                      operator: In
+                      values:
+                        - checkout
+                        - payment
+                topologyKey: kubernetes.io/hostname
+            
+            - weight: 40
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - currencyservice-affinity
+                topologyKey: kubernetes.io/hostname
+      
+      containers:
+        - name: server
+          image: gcr.io/google-samples/microservices-demo/frontend:v0.5.2
+          ports:
+            - containerPort: 80
+          env:
+            - name: PRODUCT_CATALOG_SERVICE_ADDR
+              value: "productcatalogservice:3550"
+            - name: CURRENCY_SERVICE_ADDR
+              value: "currencyservice:7000"
+            - name: CART_SERVICE_ADDR
+              value: "cartservice:7070"
+            - name: RECOMMENDATION_SERVICE_ADDR
+              value: "recommendationservice:8080"
+            - name: CHECKOUT_SERVICE_ADDR
+              value: "checkoutservice:5050"
+            - name: SHIPPING_SERVICE_ADDR
+              value: "shippingservice:50050"
+            - name: AD_SERVICE_ADDR
+              value: "adservice:9555"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+---
+# Recommendation Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendationservice-affinity
+  namespace: default
+  labels:
+    app: recommendationservice-affinity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recommendationservice-affinity
+  template:
+    metadata:
+      labels:
+        app: recommendationservice-affinity
+        tier: recommendation
+        experiment-baseline: static-affinity
+    spec:
+      serviceAccountName: default
+      
+      containers:
+        - name: server
+          image: gcr.io/google-samples/microservices-demo/recommendationservice:v0.5.2
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: PRODUCT_CATALOG_SERVICE_ADDR
+              value: "productcatalogservice:3550"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 220Mi
+            limits:
+              cpu: 200m
+              memory: 450Mi
+
+---
+# Note: This is a demonstration of static affinity patterns.
+# To use this baseline in research:
+#
+# 1. Label Online Boutique services with experiment-baseline=static-affinity
+# 2. Remove existing deployments
+# 3. Deploy these affinity-configured versions
+# 4. Run identical traffic scenarios as other baselines
+# 5. Compare latency, scheduling time, and placement efficiency
+#
+# Expected differences from NEXUS:
+# - Similar latency once scheduled (co-located)
+# - Higher pending pod count (stricter affinity requirements)
+# - Lower adaptability (rules don't adjust to load)
+# - Potential resource waste (preemptive co-location)
+# - Better steady-state performance (no dynamic overhead)
