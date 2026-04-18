@@ -44,7 +44,8 @@ type RuntimeGroup struct {
 // DependencyGraph builds and holds the in-memory service DAG
 type DependencyGraph struct {
 	clientset *kubernetes.Clientset
-	groups    []RuntimeGroup
+	nodes     map[string][]string // Adjacency list: service -> list of dependencies
+	groups    []RuntimeGroup      // Identified coordination groups
 	built     bool
 }
 
@@ -52,7 +53,7 @@ type DependencyGraph struct {
 func NewDependencyGraph(clientset *kubernetes.Clientset) *DependencyGraph {
 	return &DependencyGraph{
 		clientset: clientset,
-		groups:    make([]RuntimeGroup, 0),
+		nodes:     make(map[string][]string),
 		built:     false,
 	}
 }
@@ -61,95 +62,107 @@ func NewDependencyGraph(clientset *kubernetes.Clientset) *DependencyGraph {
 // and constructs the dependency graph at runtime
 func (dg *DependencyGraph) BuildFromAnnotations(ctx context.Context) error {
 	klog.Info("Building dependency graph from pod annotations...")
+	dg.nodes = make(map[string][]string)
 
-	// List all pods across all namespaces
 	pods, err := dg.clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
-
-	// Build groups from annotations
-	groupMap := make(map[string]map[string]bool) // groupName → set of services
 
 	for _, pod := range pods.Items {
 		if pod.Annotations == nil {
 			continue
 		}
 
-		// Check for service group annotation
-		groupName := pod.Annotations[AnnotationServiceGroup]
-		if groupName == "" {
-			continue
-		}
-
 		serviceName := extractServiceName(pod.Name)
-
-		if _, exists := groupMap[groupName]; !exists {
-			groupMap[groupName] = make(map[string]bool)
-		}
-		groupMap[groupName][serviceName] = true
-
-		// Also add dependencies declared via depends-on
 		if depsStr, ok := pod.Annotations[AnnotationDependsOn]; ok {
 			deps := strings.Split(depsStr, ",")
 			for _, dep := range deps {
 				dep = strings.TrimSpace(dep)
 				if dep != "" {
-					groupMap[groupName][dep] = true
+					dg.nodes[serviceName] = append(dg.nodes[serviceName], dep)
 				}
 			}
 		}
 	}
 
-	// Convert map to RuntimeGroups
-	dg.groups = make([]RuntimeGroup, 0, len(groupMap))
-	for name, services := range groupMap {
-		svcList := make([]string, 0, len(services))
-		for svc := range services {
-			svcList = append(svcList, svc)
-		}
-
-		dg.groups = append(dg.groups, RuntimeGroup{
-			Name:     name,
-			Services: svcList,
-		})
-		klog.Infof("Discovered coordination group '%s': %v", name, svcList)
-	}
-
-	// If no annotations found, use well-known defaults for the experiment
-	if len(dg.groups) == 0 {
-		klog.Info("No annotations found, using well-known Online Boutique dependencies")
+	if len(dg.nodes) == 0 {
+		klog.Info("No annotations found, using well-known Online Boutique critical path")
 		dg.loadExperimentDefaults()
 	}
 
 	dg.built = true
-	klog.Infof("Dependency graph built: %d coordination groups", len(dg.groups))
 	return nil
 }
 
-// loadExperimentDefaults sets up well-known dependencies for the research
-// These are used ONLY when no pod annotations exist (experiment mode)
-func (dg *DependencyGraph) loadExperimentDefaults() {
+// GetGroups returns the critical path as a RuntimeGroup
+// Implements Stage 3: Critical Path Identification
+func (dg *DependencyGraph) GetGroups() []RuntimeGroup {
+	if !dg.built || len(dg.nodes) == 0 {
+		return nil
+	}
+
+	// If already identified, return them
+	if len(dg.groups) > 0 {
+		return dg.groups
+	}
+
+	// 1. Find the longest path (critical path) in the DAG
+	path := dg.findLongestPath()
+	if len(path) == 0 {
+		return nil
+	}
+
+	klog.Infof("Critical path identified: %v", path)
 	dg.groups = []RuntimeGroup{
 		{
-			Name:     "checkout-flow",
-			Services: []string{"cartservice", "paymentservice", "checkoutservice", "currencyservice"},
-		},
-		{
-			Name:     "product-browsing",
-			Services: []string{"frontend", "productcatalogservice", "recommendationservice"},
+			Name:     "critical-path",
+			Services: path,
 		},
 	}
-
-	klog.Info("Loaded experiment defaults:")
-	for _, group := range dg.groups {
-		klog.Infof("  - %s: %v", group.Name, group.Services)
-	}
+	return dg.groups
 }
 
-// GetGroups returns all discovered coordination groups
-func (dg *DependencyGraph) GetGroups() []RuntimeGroup {
-	return dg.groups
+// findLongestPath implements the longest-path algorithm for a DAG
+func (dg *DependencyGraph) findLongestPath() []string {
+	// Simple longest path on DAG using topological sort principle
+	// Note: Online Boutique graph is small, simple DFS is sufficient
+	var longest []string
+
+	for startNode := range dg.nodes {
+		path := dg.dfsLongestPath(startNode, make(map[string]bool))
+		if len(path) > len(longest) {
+			longest = path
+		}
+	}
+
+	return longest
+}
+
+func (dg *DependencyGraph) dfsLongestPath(u string, visited map[string]bool) []string {
+	visited[u] = true
+	defer delete(visited, u)
+
+	var maxPath []string
+	for _, v := range dg.nodes[u] {
+		if !visited[v] {
+			path := dg.dfsLongestPath(v, visited)
+			if len(path) > len(maxPath) {
+				maxPath = path
+			}
+		}
+	}
+
+	return append([]string{u}, maxPath...)
+}
+
+func (dg *DependencyGraph) loadExperimentDefaults() {
+	// Explicit critical path from idea.md: frontend -> checkoutservice -> paymentservice -> currencyservice
+	dg.nodes = map[string][]string{
+		"frontend":        {"checkoutservice"},
+		"checkoutservice": {"paymentservice", "shippingservice", "cartservice"},
+		"paymentservice":  {"currencyservice"},
+	}
 }
 
 // IsBuilt returns whether the graph has been constructed

@@ -21,7 +21,11 @@ spec:
     matchLabels:
       app: adservice
   
-      schedulerName: nexus-scheduler
+  template:
+    metadata:
+      labels:
+        app: adservice
+    spec:
       schedulerName: nexus-scheduler
       serviceAccountName: default
       terminationGracePeriodSeconds: 5

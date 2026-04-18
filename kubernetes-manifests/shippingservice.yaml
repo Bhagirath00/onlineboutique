@@ -20,9 +20,13 @@ spec:
   selector:
     matchLabels:
       app: shippingservice
-  
+  template:
+    metadata:
+      labels:
+        app: shippingservice
+    spec:
       schedulerName: nexus-scheduler
-      serviceAccountName: default
+      terminationGracePeriodSeconds: 5
       containers:
       - name: server
         image: shippingservice

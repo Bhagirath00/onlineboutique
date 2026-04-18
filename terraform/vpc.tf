@@ -1,8 +1,8 @@
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "5.0.0"
+  version = "~> 5.5.2"
 
-  name = "online-boutique-vpc"
+  name = "nexus-vpc"
   cidr = "10.0.0.0/16"
 
   azs             = ["${var.region}a", "${var.region}b", "${var.region}c"]

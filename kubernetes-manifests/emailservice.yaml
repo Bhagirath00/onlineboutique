@@ -20,7 +20,11 @@ spec:
   selector:
     matchLabels:
       app: emailservice
-  
+  template:
+    metadata:
+      labels:
+        app: emailservice
+    spec:
       schedulerName: nexus-scheduler
       serviceAccountName: default
       terminationGracePeriodSeconds: 5

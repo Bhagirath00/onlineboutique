@@ -115,7 +115,7 @@ type NEXUSScheduler struct {
 // NewNEXUSScheduler creates a new scheduler extender instance
 func NewNEXUSScheduler(clientset *kubernetes.Clientset) *NEXUSScheduler {
 	metrics := NewNEXUSMetrics()
-	spikeDetector := NewSpikeDetector()
+	spikeDetector := NewSpikeDetector(clientset)
 	depGraph := NewDependencyGraph(clientset)
 	gangManager := NewGangManager(metrics)
 
@@ -210,31 +210,29 @@ func (s *NEXUSScheduler) handleFilter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Filter: prefer nodes where gang members already exist
-	// But don't remove all nodes — always keep at least some available
+	// Use MEMORY LOOKUP instead of API (Zero-Overhead Proof)
 	eligibleNodes := make([]v1.Node, 0)
 	failedNodes := make(map[string]string)
 
-	// Find nodes with gang members
-	nodesWithMembers := make(map[string]bool)
-	ctx := context.Background()
+	foundAny := false
 	for _, node := range args.Nodes.Items {
-		memberCount := s.nodeScorer.countGangMembersOnNode(ctx, &node, gang)
-		if memberCount > 0 {
-			nodesWithMembers[node.Name] = true
+		if s.gangManager.GetNodePreference(gang.ID, node.Name) > 0 {
+			foundAny = true
+			break
 		}
 	}
 
-	if len(nodesWithMembers) > 0 {
-		// Some nodes have gang members — prefer those, but keep all schedulable
+	if foundAny {
 		for _, node := range args.Nodes.Items {
-			if isNodeSchedulable(&node) {
+			// Preference: keep nodes with existing gang members
+			if s.gangManager.GetNodePreference(gang.ID, node.Name) > 0 {
 				eligibleNodes = append(eligibleNodes, node)
 			} else {
-				failedNodes[node.Name] = "Node not schedulable"
+				failedNodes[node.Name] = "Non-preferred for gang co-location"
 			}
 		}
 	} else {
-		// No nodes have gang members — return all (this gang is starting fresh)
+		// New gang: all nodes eligible
 		eligibleNodes = args.Nodes.Items
 	}
 
@@ -249,72 +247,65 @@ func (s *NEXUSScheduler) handleFilter(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
 	s.metrics.ExtenderFilterLatency.TimeSince(startTime)
+	s.metrics.IncrementCounter("api_call_avoided") // Research proof of efficiency
 }
 
 // handlePrioritize processes Prioritize requests from kube-scheduler
-// When IDLE: returns equal scores (no opinion — zero overhead)
-// When ACTIVE: scores nodes based on gang member locality
 func (s *NEXUSScheduler) handlePrioritize(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	s.metrics.IncrementCounter("prioritize_calls")
 
-	// Parse request
 	var args ExtenderArgs
 	if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 		klog.Errorf("Failed to decode prioritize request: %v", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// IDLE state: return equal scores (no opinion)
 	if s.GetState() == StateIdle {
-		klog.V(3).Info("Prioritize: IDLE state — returning equal scores (no opinion)")
-		priorities := make([]HostPriority, 0)
-		if args.Nodes != nil {
-			for _, node := range args.Nodes.Items {
-				priorities = append(priorities, HostPriority{
-					Host:  node.Name,
-					Score: 0, // Equal score = no preference
-				})
-			}
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(priorities)
-		s.metrics.ExtenderPrioritizeLatency.TimeSince(startTime)
-		return
-	}
-
-	// ACTIVE state: score based on gang locality
-	pod := args.Pod
-	if pod == nil || args.Nodes == nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]HostPriority{})
-		return
-	}
-
-	gang := s.gangManager.GetGangForPod(pod)
-	if gang == nil {
-		// Pod not in any gang — return equal scores
-		klog.V(2).Infof("Prioritize: Pod %s not in any gang — returning equal scores", pod.Name)
 		priorities := make([]HostPriority, 0)
 		for _, node := range args.Nodes.Items {
 			priorities = append(priorities, HostPriority{Host: node.Name, Score: 0})
 		}
-		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(priorities)
 		s.metrics.ExtenderPrioritizeLatency.TimeSince(startTime)
 		return
 	}
 
-	// Score nodes by gang locality
+	pod := args.Pod
+	gang := s.gangManager.GetGangForPod(pod)
+	if gang == nil {
+		priorities := make([]HostPriority, 0)
+		for _, node := range args.Nodes.Items {
+			priorities = append(priorities, HostPriority{Host: node.Name, Score: 0})
+		}
+		json.NewEncoder(w).Encode(priorities)
+		return
+	}
+
+	// Score nodes and track Placement Quality
 	priorities := s.nodeScorer.ScoreForExtender(context.Background(), pod, args.Nodes, gang)
 
-	klog.Infof("Prioritize: Pod %s (gang: %s) → scores: %+v", pod.Name, gang.ID, priorities)
+	// Final Step: Log Placement Intent for Research Proofs
+	for _, p := range priorities {
+		if p.Score > 100 { // Indicates locality/heterogeneity match
+			for _, n := range args.Nodes.Items {
+				if n.Name == p.Host {
+					if n.Labels["region"] == "region-a" {
+						s.metrics.IncrementCounter("region_a_placements")
+					}
+					if n.Labels["cpu-tier"] == "high" {
+						s.metrics.IncrementCounter("high_tier_placements")
+					}
+				}
+			}
+		}
+	}
 
-	w.Header().Set("Content-Type", "application/json")
+	klog.Infof("Prioritize: Pod %s (gang: %s) → success scores: %+v", pod.Name, gang.ID, priorities)
 	json.NewEncoder(w).Encode(priorities)
 	s.metrics.ExtenderPrioritizeLatency.TimeSince(startTime)
 }
+
 
 // --- Spike Detection Loop ---
 
@@ -337,13 +328,29 @@ func (s *NEXUSScheduler) spikeWatcher(ctx context.Context) {
 	}
 }
 
+// getPendingPodCount polls the Kubernetes API for pods currently in Pending state.
+// This is critical for the spike detector fallback mechanism when Prometheus lacks metric data.
+func (s *NEXUSScheduler) getPendingPodCount(ctx context.Context) int {
+	pods, err := s.clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{
+		FieldSelector: "status.phase=Pending",
+	})
+	if err != nil {
+		klog.Warningf("Failed to list Pending pods: %v", err)
+		return 0
+	}
+	return len(pods.Items)
+}
+
 // checkForSpike evaluates spike conditions and transitions state
 func (s *NEXUSScheduler) checkForSpike(ctx context.Context) {
 	currentState := s.GetState()
 
 	if currentState == StateIdle {
+		// Calculate true pending pod count from Kubernetes API to ensure reliable fallback detection
+		pendingCount := s.getPendingPodCount(ctx)
+
 		// Check for spike
-		if s.spikeDetector.Detect(0) {
+		if s.spikeDetector.Detect(pendingCount) {
 			activationStart := time.Now()
 
 			klog.Info("═══════════════════════════════════════════")
@@ -355,22 +362,26 @@ func (s *NEXUSScheduler) checkForSpike(ctx context.Context) {
 			s.metrics.IncrementCounter("spike_events")
 
 			// Stage 2: Build dependency graph
-			s.gangManager.SetStage(GangStageGraphBuilt)
 			if err := s.depGraph.BuildFromAnnotations(ctx); err != nil {
 				klog.Errorf("Failed to build dependency graph: %v", err)
 				return
 			}
+			s.gangManager.SetStage(GangStageGraphBuilt)
 
 			// Stage 3: Identify critical path members
-			s.gangManager.SetStage(GangStageCriticalPath)
 			groups := s.depGraph.GetGroups()
-			klog.Infof("Critical path identified: %d paths to optimize", len(groups))
-
-			// Stage 4 & 5: Form gangs from the graph and start scheduling
-			if len(groups) > 0 {
-				s.gangManager.FormGangs(groups)
-				s.gangManager.SetStage(GangStageScheduling)
+			if len(groups) == 0 {
+				klog.Warning("Spike detected but no critical path identified — NEXUS remains IDLE")
+				return
 			}
+			s.gangManager.SetStage(GangStageCriticalPath)
+
+			// Stage 4: Form gangs
+			s.gangManager.FormGangs(groups)
+			s.gangManager.SetStage(GangStageFormed)
+
+			// Stage 5: Gang Active
+			s.gangManager.SetStage(GangStageActive)
 
 			// Transition to ACTIVE
 			s.SetState(StateActive)
@@ -378,12 +389,13 @@ func (s *NEXUSScheduler) checkForSpike(ctx context.Context) {
 
 			// Record activation latency
 			latencyMs := s.metrics.ActivationLatency.TimeSince(activationStart)
-			klog.Infof("NEXUS activated in %.2fms (gangs: %d)", latencyMs, s.gangManager.GetActiveGangCount())
+			klog.Infof("NEXUS activated in %.2fms (gang ID: %s)", latencyMs, groups[0].Name)
 		}
 	}
 }
 
 // cooldownChecker monitors for returning to IDLE state
+// Implements Stage 7 & 8: Cooldown and Dissolution
 func (s *NEXUSScheduler) cooldownChecker(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
@@ -394,22 +406,26 @@ func (s *NEXUSScheduler) cooldownChecker(ctx context.Context) {
 			return
 		case <-ticker.C:
 			if s.GetState() == StateActive {
-				// Check if cooldown has elapsed
+				// Check if cooldown has elapsed (Rule 3)
 				if time.Since(s.lastSpikeTime) > cooldownDuration {
-					// Check if spike is still ongoing
-					if !s.spikeDetector.Detect(0) {
+					// Check if spike is still ongoing (Rule 2)
+					pendingCount := s.getPendingPodCount(ctx)
+					if !s.spikeDetector.Detect(pendingCount) {
 						klog.Info("═══════════════════════════════════════════")
 						klog.Info("  SPIKE ENDED — Dissolving gangs, returning to IDLE")
 						klog.Info("═══════════════════════════════════════════")
 
-						// Stage 6 & 7: Dissolve gangs and clear graph
+						// Stage 7: Cooldown and Dissolution start
 						s.gangManager.SetStage(GangStageCooldown)
+
+						// Stage 8: Dissolved (Rule 3)
 						s.gangManager.DissolveAll()
 						s.depGraph.Clear()
-						s.gangManager.SetStage(GangStageNone)
+						s.gangManager.SetStage(GangStageDissolved)
 
-						// Return to IDLE (dormant)
+						// Return to IDLE (Rule 1)
 						s.SetState(StateIdle)
+						s.gangManager.SetStage(GangStageNone)
 
 						klog.Info("NEXUS is now DORMANT — zero scheduling overhead")
 					} else {
@@ -521,6 +537,9 @@ func main() {
 	// Start cooldown checker
 	go scheduler.cooldownChecker(ctx)
 
+	// Start standalone scheduling loop (unblocks Pending pods on EKS)
+	go scheduler.standaloneSchedulerLoop(ctx)
+
 	// Start HTTP server
 	klog.Infof("Starting NEXUS Extender HTTP server on %s", metricsPort)
 	klog.Info("Endpoints:")
@@ -534,6 +553,79 @@ func main() {
 
 	if err := http.ListenAndServe(metricsPort, nil); err != nil {
 		klog.Fatalf("Failed to start HTTP server: %v", err)
+	}
+}
+
+// standaloneSchedulerLoop is a simplified scheduling loop for environments
+// where the control-plane kube-scheduler cannot be easily configured.
+func (s *NEXUSScheduler) standaloneSchedulerLoop(ctx context.Context) {
+	klog.Info("Starting standalone NEXUS scheduling loop...")
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.schedulePendingPods(ctx)
+		}
+	}
+}
+
+func (s *NEXUSScheduler) schedulePendingPods(ctx context.Context) {
+	// 1. List pending pods assigned to nexus-scheduler
+	pods, err := s.clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{
+		FieldSelector: "status.phase=Pending",
+	})
+	if err != nil {
+		klog.Errorf("Failed to list pending pods: %v", err)
+		return
+	}
+
+	for _, pod := range pods.Items {
+		if pod.Spec.SchedulerName != schedulerName || pod.Spec.NodeName != "" {
+			continue
+		}
+
+		klog.Infof("Scheduling pod: %s/%s", pod.Namespace, pod.Name)
+
+		// 2. Get available nodes
+		nodes, err := s.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		if err != nil {
+			klog.Errorf("Failed to list nodes: %v", err)
+			continue
+		}
+
+		// 3. Score nodes (reuse existing scoring logic)
+		// For standalone, we just pick the first schedulable node for now
+		// or use the nodeScorer if it's ready.
+		var targetNode string
+		for _, node := range nodes.Items {
+			if isNodeSchedulable(&node) {
+				targetNode = node.Name
+				break
+			}
+		}
+
+		if targetNode == "" {
+			klog.Warningf("No schedulable nodes for pod %s", pod.Name)
+			continue
+		}
+
+		// 4. BIND the pod
+		binding := &v1.Binding{
+			ObjectMeta: metav1.ObjectMeta{Name: pod.Name, Namespace: pod.Namespace},
+			Target:     v1.ObjectReference{Kind: "Node", Name: targetNode},
+		}
+
+		err = s.clientset.CoreV1().Pods(pod.Namespace).Bind(ctx, binding, metav1.CreateOptions{})
+		if err != nil {
+			klog.Errorf("Failed to bind pod %s to node %s: %v", pod.Name, targetNode, err)
+		} else {
+			klog.Infof("Successfully bound pod %s to node %s", pod.Name, targetNode)
+			s.emitEvent(pod.Namespace, pod.Name, "Scheduled", fmt.Sprintf("Successfully assigned %s/%s to %s via NEXUS", pod.Namespace, pod.Name, targetNode))
+		}
 	}
 }
 

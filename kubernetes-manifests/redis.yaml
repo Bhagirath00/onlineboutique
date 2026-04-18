@@ -25,6 +25,8 @@ spec:
       labels:
         app: redis-cart
     spec:
+      schedulerName: nexus-scheduler
+      terminationGracePeriodSeconds: 5
       containers:
       - name: redis
         image: redis:alpine

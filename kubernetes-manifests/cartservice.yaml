@@ -20,7 +20,11 @@ spec:
   selector:
     matchLabels:
       app: cartservice
-  
+  template:
+    metadata:
+      labels:
+        app: cartservice
+    spec:
       schedulerName: nexus-scheduler
       serviceAccountName: default
       terminationGracePeriodSeconds: 5

@@ -20,7 +20,11 @@ spec:
   selector:
     matchLabels:
       app: checkoutservice
-  
+  template:
+    metadata:
+      labels:
+        app: checkoutservice
+    spec:
       schedulerName: nexus-scheduler
       serviceAccountName: default
       containers:
