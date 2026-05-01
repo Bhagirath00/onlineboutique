@@ -13,7 +13,7 @@ module "eks" {
 
   eks_managed_node_groups = {
     region_a_high_cpu = {
-      instance_types = ["t3.medium"]
+      instance_types = ["t3.small"]
       ami_type       = "AL2_x86_64"
       min_size     = 1
       max_size     = 4
@@ -35,5 +35,21 @@ module "eks" {
       }
     }
   }
+
+  # Cost-saving fix: Enable Prefix Delegation to allow 110 pods per t3.small
+  cluster_addons = {
+    vpc-cni = {
+      before_compute = true
+      most_recent    = true
+      configuration_values = jsonencode({
+        env = {
+          ENABLE_PREFIX_DELEGATION = "true"
+          WARM_PREFIX_TARGET       = "1"
+        }
+      })
+    }
+  }
+
+  enable_cluster_creator_admin_permissions = true
 }
 
