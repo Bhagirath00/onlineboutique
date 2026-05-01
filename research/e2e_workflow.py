@@ -140,10 +140,10 @@ Error: {e}
         print("  ✅ kubectl configured")
         
         # Check Prometheus
-        result = subprocess.run(['kubectl', 'get', 'svc', 'prometheus', '-n', 'nexus-system'],
+        result = subprocess.run(['kubectl', 'get', 'svc', 'prometheus-server', '-n', 'nexus-system'],
                               capture_output=True, text=True)
         if result.returncode != 0:
-            raise Exception("Prometheus not found. Deploy first: kubectl apply -f release/kubernetes-manifests.yaml")
+            raise Exception("Prometheus not found. Deploy first: helm install prometheus ...")
         
         print("  ✅ Prometheus running")
         

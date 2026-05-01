@@ -82,7 +82,7 @@ class ExperimentOrchestrator:
         self.results_dir.mkdir(parents=True, exist_ok=True)
         
         # Metrics collector
-        prometheus_url = os.getenv('PROMETHEUS_URL', 'http://prometheus.nexus-system:9090')
+        prometheus_url = os.getenv('PROMETHEUS_URL', 'http://prometheus-server.nexus-system:80')
         self.metrics_collector = ControlPlaneMetricsCollector(prometheus_url=prometheus_url)
         
         # Kubectl context

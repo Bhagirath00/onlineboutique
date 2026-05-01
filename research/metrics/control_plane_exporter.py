@@ -25,7 +25,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 class PrometheusMetricsQuery:
     """Query Prometheus for control-plane metrics"""
     
-    def __init__(self, prometheus_url="http://prometheus.nexus-system:9090"):
+    def __init__(self, prometheus_url="http://prometheus-server.nexus-system:80"):
         self.base_url = prometheus_url
         self.http = urllib3.PoolManager()
     
@@ -116,8 +116,8 @@ class ControlPlaneMetricsCollector:
         }
     }
     
-    def __init__(self):
-        self.prometheus = PrometheusMetricsQuery()
+    def __init__(self, prometheus_url: str = "http://prometheus-server.nexus-system:80"):
+        self.prometheus = PrometheusMetricsQuery(prometheus_url=prometheus_url)
         self.results = {}
     
     def collect_all(self, time_range=300):
