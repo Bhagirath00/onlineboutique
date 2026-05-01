@@ -80,7 +80,7 @@ class ProofCollector:
                  baseline: str = "unknown"):
         """Initialize proof collector"""
         self.prometheus_url = prometheus_url or os.getenv('PROMETHEUS_URL',
-                                                          'http://prometheus.nexus-system:9090')
+                                                          'http://prometheus-server.nexus-system:80')
         self.experiment_id = experiment_id
         self.baseline = baseline
         self.results_dir = Path('./research/results')
@@ -680,7 +680,7 @@ def main():
     parser.add_argument('--baseline', required=True, help='Baseline name')
     parser.add_argument('--duration', type=int, default=300, help='Collection duration (seconds)')
     parser.add_argument('--prometheus-url', default=os.getenv('PROMETHEUS_URL',
-                                                               'http://prometheus.nexus-system:9090'))
+                                                               'http://prometheus-server.nexus-system:80'))
     
     args = parser.parse_args()
     

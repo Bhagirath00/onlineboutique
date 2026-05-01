@@ -1,0 +1,65 @@
+{
+  "experiment_id": "spike_nexus_r1",
+  "baseline": "nexus-scheduler",
+  "collected_at": "2026-05-01T14:56:23.517250",
+  "total_metrics_collected": 0,
+  "total_claims_validated": 4,
+  "claims_passed": 0,
+  "claims_failed": 0,
+  "overall_confidence": 0.0,
+  "evidence": [
+    {
+      "claim_id": "claim_1",
+      "claim_text": "NEXUS scheduler CPU overhead < 5ms",
+      "claim_type": "overhead",
+      "target_value": 5.0,
+      "target_comparison": "<",
+      "measured_value": 0,
+      "unit": "ms",
+      "proof_status": "INCONCLUSIVE",
+      "confidence": 0.0,
+      "raw_data": [],
+      "metadata": {}
+    },
+    {
+      "claim_id": "claim_2",
+      "claim_text": "NEXUS latency p99 comparable to Volcano within 5%",
+      "claim_type": "latency",
+      "target_value": 100.0,
+      "target_comparison": "<=",
+      "measured_value": 0,
+      "unit": "ms",
+      "proof_status": "INCONCLUSIVE",
+      "confidence": 0.0,
+      "raw_data": [],
+      "metadata": {}
+    },
+    {
+      "claim_id": "claim_3",
+      "claim_text": "NEXUS achieves 85%+ service co-location",
+      "claim_type": "colocation",
+      "target_value": 85.0,
+      "target_comparison": ">=",
+      "measured_value": 0,
+      "unit": "%",
+      "proof_status": "INCONCLUSIVE",
+      "confidence": 0.0,
+      "raw_data": [],
+      "metadata": {}
+    },
+    {
+      "claim_id": "claim_4",
+      "claim_text": "NEXUS spike activation latency < 500ms",
+      "claim_type": "activation",
+      "target_value": 500.0,
+      "target_comparison": "<",
+      "measured_value": 0,
+      "unit": "ms",
+      "proof_status": "INCONCLUSIVE",
+      "confidence": 0.0,
+      "raw_data": [],
+      "metadata": {}
+    }
+  ],
+  "overall_result": "FAIL"
+}

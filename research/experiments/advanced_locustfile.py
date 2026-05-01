@@ -72,7 +72,7 @@ class BoutiqueUserBehavior(TaskSet):
     def browse_products(self):
         """Browse product catalog"""
         product_id = random.choice(PRODUCTS)
-        self.client.get(f"/api/products/{product_id}", 
+        self.client.get(f"/product/{product_id}", 
                        headers={"X-Experiment": EXPERIMENT_ID, 
                                "X-Scheduler": SCHEDULER_TYPE})
     
@@ -80,20 +80,13 @@ class BoutiqueUserBehavior(TaskSet):
     def add_to_cart(self):
         """Add product to shopping cart"""
         product_id = random.choice(PRODUCTS)
-        self.client.post("/api/cart", 
-                        json={"product_id": product_id, "quantity": 1},
+        self.client.post("/cart", 
+                        data={"product_id": product_id, "quantity": 1},
                         headers={"X-Experiment": EXPERIMENT_ID,
                                 "X-Scheduler": SCHEDULER_TYPE})
     
-    @task(1)
-    def checkout(self):
-        """Simulate checkout flow"""
-        self.client.post("/api/orders",
-                        json={"items": 1},
-                        headers={"X-Experiment": EXPERIMENT_ID,
-                                "X-Scheduler": SCHEDULER_TYPE})
 
-class SteadyLoadUser(HttpUser):
+class SteadyLoadUserLogic:
     """SCENARIO 1: Steady Load
     
     Maintains constant RPS throughout the experiment.
@@ -112,7 +105,7 @@ class SteadyLoadUser(HttpUser):
             "behavior": "constant load"
         }
 
-class SuddenSpikeUser(HttpUser):
+class SuddenSpikeUserLogic:
     """SCENARIO 2: Sudden Spike (Flash Sale)
     
     Starts with baseline load, then instantly jumps to 10x multiplier.
@@ -142,25 +135,23 @@ class SuddenSpikeUser(HttpUser):
             "behavior": "sudden 10x jump at 60s"
         }
     
-    def tick(self):
-        """Dynamically adjust user behavior based on experiment phase"""
+    @property
+    def wait_time(self):
+        """Dynamically adjust delay for spike"""
         elapsed = time.time() - self.spawn_time
         
-        if elapsed > 60 and not load_state.spike_activated:
-            # Spike activation at 60s
-            load_state.spike_activated = True
-            load_state.current_rps = TARGET_RPS * SPIKE_MULTIPLIER
-            print(f"\n[SPIKE ACTIVATED] RPS jumped from {TARGET_RPS} to {load_state.current_rps}")
-        
-        if elapsed > 180 and load_state.spike_activated:
-            # Cool-down at 180s
-            load_state.spike_activated = False
-            load_state.current_rps = TARGET_RPS
-            print(f"\n[SPIKE COOLDOWN] RPS normalized to {TARGET_RPS}")
-        
-        super().tick()
+        if elapsed > 60 and elapsed < 180:
+            # Spike active: high frequency
+            factor = float(SPIKE_MULTIPLIER)
+        else:
+            # Baseline or cooldown
+            factor = 1.0
+            
+        base_wait = 1.0 / TARGET_RPS
+        adjusted_wait = base_wait / factor
+        return between(adjusted_wait * 0.5, adjusted_wait * 1.5)
 
-class GradualRampUser(HttpUser):
+class GradualRampUserLogic:
     """SCENARIO 3: Gradual Ramp
     
     Linearly increases RPS over time, simulating gradual load increase.
@@ -209,7 +200,7 @@ class GradualRampUser(HttpUser):
         
         return between(adjusted_wait * 0.5, adjusted_wait * 1.5)
 
-class MixedWorkloadUser(HttpUser):
+class MixedWorkloadUserLogic:
     """SCENARIO 4: Mixed Workload
     
     Simulates realistic production: background traffic + periodic bursts.
@@ -259,14 +250,14 @@ class MixedWorkloadUser(HttpUser):
                 self.burst_active = True
             return between(0.08, 0.12)  # ~750 RPS (10x burst)
 
-# Scenario dispatcher
+# Scenario dispatcher - Creates exactly ONE class that Locust will detect
 if SCENARIO == "steady":
-    User = SteadyLoadUser
+    class ActiveUser(HttpUser, SteadyLoadUserLogic): pass
 elif SCENARIO == "spike":
-    User = SuddenSpikeUser
+    class ActiveUser(HttpUser, SuddenSpikeUserLogic): pass
 elif SCENARIO == "ramp":
-    User = GradualRampUser
+    class ActiveUser(HttpUser, GradualRampUserLogic): pass
 elif SCENARIO == "mixed":
-    User = MixedWorkloadUser
+    class ActiveUser(HttpUser, MixedWorkloadUserLogic): pass
 else:
     raise ValueError(f"Unknown scenario: {SCENARIO}")

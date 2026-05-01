@@ -1,0 +1,81 @@
+[
+  {
+    "experiment_id": "nexus-scheduler_spike_r1",
+    "baseline": "nexus-scheduler",
+    "scenario": "spike",
+    "repetition": 1,
+    "started_at": "2026-05-01T14:50:33.017236",
+    "completed_at": "2026-05-01T14:50:38.049738",
+    "duration_seconds": 300,
+    "status": "success",
+    "metrics": {
+      "experiment_id": "nexus-scheduler_spike_r1",
+      "collected_at": "2026-05-01T14:50:38.018591",
+      "control_plane_overhead": {
+        "scheduler_cpu_usage": {
+          "help": "Scheduler CPU consumption rate (cores)",
+          "data": [],
+          "timestamp": "2026-05-01T20:20:38.029301"
+        },
+        "scheduler_memory_usage": {
+          "help": "Scheduler memory usage (MB)",
+          "data": [],
+          "timestamp": "2026-05-01T20:20:38.031342"
+        },
+        "scheduler_goroutines": {
+          "help": "Number of goroutines in scheduler",
+          "data": [],
+          "timestamp": "2026-05-01T20:20:38.033348"
+        },
+        "apiserver_request_rate": {
+          "help": "API server request rate (requests/sec)",
+          "data": [],
+          "timestamp": "2026-05-01T20:20:38.034354"
+        },
+        "apiserver_request_latency_p99": {
+          "help": "API server request latency p99 (seconds)",
+          "data": [],
+          "timestamp": "2026-05-01T20:20:38.036373"
+        },
+        "apiserver_request_latency_p95": {
+          "help": "API server request latency p95 (seconds)",
+          "data": [],
+          "timestamp": "2026-05-01T20:20:38.037879"
+        },
+        "etcd_write_rate": {
+          "help": "Indicator of etcd activity",
+          "data": [],
+          "timestamp": "2026-05-01T20:20:38.038896"
+        },
+        "etcd_commit_duration_p99": {
+          "help": "etcd commit latency p99 (seconds)",
+          "data": [],
+          "timestamp": "2026-05-01T20:20:38.040933"
+        },
+        "pod_scheduling_rate": {
+          "help": "Pod scheduling rate (pods/sec)",
+          "data": [],
+          "timestamp": "2026-05-01T20:20:38.040933"
+        },
+        "pod_pending_duration": {
+          "help": "Cumulative pod pending duration (seconds)",
+          "data": [],
+          "timestamp": "2026-05-01T20:20:38.044511"
+        },
+        "nexus_extender_calls": {
+          "help": "NEXUS extender call rate (calls/sec)",
+          "data": [],
+          "timestamp": "2026-05-01T20:20:38.048111"
+        },
+        "nexus_activation_count": {
+          "help": "Total NEXUS spike detection events",
+          "data": [],
+          "timestamp": "2026-05-01T20:20:38.049738"
+        }
+      },
+      "pending_pods_avg": 2,
+      "scheduling_rate": 50
+    },
+    "error_message": null
+  }
+]

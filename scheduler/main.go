@@ -214,27 +214,9 @@ func (s *NEXUSScheduler) handleFilter(w http.ResponseWriter, r *http.Request) {
 	eligibleNodes := make([]v1.Node, 0)
 	failedNodes := make(map[string]string)
 
-	foundAny := false
-	for _, node := range args.Nodes.Items {
-		if s.gangManager.GetNodePreference(gang.ID, node.Name) > 0 {
-			foundAny = true
-			break
-		}
-	}
-
-	if foundAny {
-		for _, node := range args.Nodes.Items {
-			// Preference: keep nodes with existing gang members
-			if s.gangManager.GetNodePreference(gang.ID, node.Name) > 0 {
-				eligibleNodes = append(eligibleNodes, node)
-			} else {
-				failedNodes[node.Name] = "Non-preferred for gang co-location"
-			}
-		}
-	} else {
-		// New gang: all nodes eligible
-		eligibleNodes = args.Nodes.Items
-	}
+	// We return all nodes to avoid "hard" failures like IP exhaustion.
+	// The "Prioritize" endpoint will handle the actual co-location intelligence.
+	eligibleNodes = args.Nodes.Items
 
 	result := ExtenderFilterResult{
 		Nodes:       &v1.NodeList{Items: eligibleNodes},
