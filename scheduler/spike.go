@@ -59,7 +59,7 @@ type PrometheusResponse struct {
 func NewSpikeDetector(clientset *kubernetes.Clientset) *SpikeDetector {
 	prometheusURL := os.Getenv("PROMETHEUS_URL")
 	if prometheusURL == "" {
-		prometheusURL = "http://prometheus.nexus-system.svc.cluster.local:9090"
+		prometheusURL = "http://prometheus-server.nexus-system.svc.cluster.local:80"
 	}
 
 	qpsThreshold := 1000.0
@@ -167,30 +167,29 @@ func (sd *SpikeDetector) isPrometheusReachable() bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-// queryQPS retrieves the current queries per second across all services
+// queryQPS retrieves the current CPU usage across all services in the default namespace
 func (sd *SpikeDetector) queryQPS() (float64, error) {
-	// FINAL FAIL-SAFE: Direct Kubernetes API Pod Count.
-	// This bypasses all Prometheus networking issues on AWS EKS.
-	pods, err := sd.clientset.CoreV1().Pods("default").List(context.TODO(), metav1.ListOptions{})
+	// Query total CPU usage in millicores for the default namespace
+	query := `sum(rate(container_cpu_usage_seconds_total{namespace="default"}[1m])) * 1000`
+	val, err := sd.queryPrometheus(query)
 	if err != nil {
-		klog.Errorf("NEXUS-SPIKE: Failed to query K8s API for pod count: %v", err)
+		klog.Warningf("NEXUS-SPIKE: Failed to query Prometheus for CPU: %v", err)
 		return 0, err
 	}
-	// Return the count of pods. If it increases beyond your baseline, we have a trigger.
-	return float64(len(pods.Items)), nil
+	return val, nil
 }
 
 // queryErrorRate retrieves the current error rate
 func (sd *SpikeDetector) queryErrorRate() (float64, error) {
 	// If app metrics are missing, we skip error rate and rely on QPS and Pending Pods
-	query := `sum(rate(grpc_server_handled_total{grpc_code!="OK", job="kubernetes-pods"}[1m]))`
+	query := `sum(rate(istio_requests_total{response_code=~"5..", reporter="destination"}[1m]))`
 	return sd.queryPrometheus(query)
 }
 
 // queryP95Latency retrieves the p95 request latency in milliseconds
 func (sd *SpikeDetector) queryP95Latency() (float64, error) {
 	// p95 latency covering both gRPC and HTTP frontend traffic
-	query := `histogram_quantile(0.95, sum(rate(grpc_server_handling_seconds_bucket{job="kubernetes-pods"}[1m])) by (le) or sum(rate(http_request_duration_seconds_bucket{job="kubernetes-pods"}[1m])) by (le)) * 1000`
+	query := `histogram_quantile(0.95, sum(rate(istio_request_duration_milliseconds_bucket{reporter="destination"}[1m])) by (le)) / 1000`
 	return sd.queryPrometheus(query)
 }
 
