@@ -85,20 +85,7 @@ spec:
       serviceAccountName: volcano-scheduler
       containers:
         - name: scheduler
-          image: volcanosh/volcano:v1.8
-          command:
-            - sh
-            - -c
-            - |
-              /bin/volcano-scheduler \
-                --logtostderr \
-                -v 4 \
-                --scheduler-conf=/etc/volcano/scheduler.conf \
-                --kubeconfig=/etc/kubeconfig/kubeconfig \
-                --master=https://kubernetes.default:443
-          env:
-            - name: KUBECONFIG
-              value: /etc/kubeconfig/kubeconfig
+          image: volcanosh/vc-scheduler:v1.8.0
           volumeMounts:
             - name: scheduler-config
               mountPath: /etc/volcano

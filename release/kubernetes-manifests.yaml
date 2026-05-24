@@ -53,11 +53,11 @@ spec:
             command: ["/bin/grpc_health_probe", "-addr=:8080"]
         resources:
           requests:
-            cpu: 100m
+            cpu: 50m
             memory: 64Mi
           limits:
             cpu: 200m
-            memory: 128Mi
+            memory: 64Mi
 ---
 apiVersion: v1
 kind: Service
@@ -122,11 +122,11 @@ spec:
           #   value: "jaeger-collector:14268"
           resources:
             requests:
-              cpu: 100m
+              cpu: 50m
               memory: 64Mi
             limits:
               cpu: 200m
-              memory: 128Mi
+              memory: 64Mi
 ---
 apiVersion: v1
 kind: Service
@@ -182,7 +182,7 @@ spec:
           value: "1"
         resources:
           requests:
-            cpu: 100m
+            cpu: 50m
             memory: 220Mi
           limits:
             cpu: 200m
@@ -269,11 +269,11 @@ spec:
           #   value: "true"
           resources:
             requests:
-              cpu: 100m
+              cpu: 50m
               memory: 64Mi
             limits:
               cpu: 200m
-              memory: 128Mi
+              memory: 64Mi
 ---
 apiVersion: v1
 kind: Service
@@ -338,11 +338,11 @@ spec:
             command: ["/bin/grpc_health_probe", "-addr=:50051"]
         resources:
           requests:
-            cpu: 100m
+            cpu: 50m
             memory: 64Mi
           limits:
             cpu: 200m
-            memory: 128Mi
+            memory: 64Mi
 ---
 apiVersion: v1
 kind: Service
@@ -396,11 +396,11 @@ spec:
             command: ["/bin/grpc_health_probe", "-addr=:3550"]
         resources:
           requests:
-            cpu: 100m
+            cpu: 50m
             memory: 64Mi
           limits:
             cpu: 200m
-            memory: 128Mi
+            memory: 64Mi
 ---
 apiVersion: v1
 kind: Service
@@ -444,7 +444,7 @@ spec:
             memory: 64Mi
           limits:
             cpu: 300m
-            memory: 128Mi
+            memory: 64Mi
         readinessProbe:
           initialDelaySeconds: 30
           exec:
@@ -557,11 +557,11 @@ spec:
             command: ["/bin/grpc_health_probe", "-addr=:7000"]
         resources:
           requests:
-            cpu: 100m
+            cpu: 50m
             memory: 64Mi
           limits:
             cpu: 200m
-            memory: 128Mi
+            memory: 64Mi
 ---
 apiVersion: v1
 kind: Service
@@ -615,11 +615,11 @@ spec:
             command: ["/bin/grpc_health_probe", "-addr=:50051"]
         resources:
           requests:
-            cpu: 100m
+            cpu: 50m
             memory: 64Mi
           limits:
             cpu: 200m
-            memory: 128Mi
+            memory: 64Mi
 ---
 apiVersion: v1
 kind: Service

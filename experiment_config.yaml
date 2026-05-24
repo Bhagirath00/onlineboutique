@@ -1,0 +1,291 @@
+---
+# NEXUS Research - Experiment Configuration
+# ==========================================
+# 
+# Defines baseline configurations for comparative research study:
+# 1. Default Scheduler: Baseline (no extender)  
+# 2. Volcano Scheduler: Always-on coordination
+# 3. Static Affinity: Pod affinity rules
+# 4. NEXUS: Event-driven with gang scheduling
+#
+# Run experiments in sequence to collect comparable data
+
+experiments:
+  
+  - id: "default-scheduler"
+    name: "Default Kubernetes Scheduler (Baseline)"
+    description: |
+      Uses default kube-scheduler with no coordination or gang scheduling.
+      Pods are placed independently based on resource availability.
+      
+      Expected behavior:
+      - Poor latency under burst (services scattered across nodes)
+      - No scheduling overhead (simple bin-packing)
+      - High cross-node network communication
+    
+    scheduler:
+      type: "default"
+      extender: null
+    
+    traffic_scenarios:
+      - name: "steady"
+        duration_seconds: 300
+        target_rps: 100
+      
+      - name: "spike"
+        duration_seconds: 300
+        target_rps: 100
+        spike_multiplier: 10
+        spike_at_second: 60
+      
+      - name: "ramp"
+        duration_seconds: 240
+        target_rps: 100
+        ramp_to: 1000
+        ramp_duration_seconds: 120
+      
+      - name: "mixed"
+        duration_seconds: 300
+        target_rps: 100
+        burst_frequency_seconds: 60
+        burst_multiplier: 10
+    
+    metrics:
+      - latency_p50
+      - latency_p95
+      - latency_p99
+      - throughput
+      - error_rate
+      - pending_pods
+      - scheduling_rate
+      - api_server_load
+    
+    repetitions: 3  # Run 3 times for statistical rigor
+    cooldown_seconds: 60
+
+  - id: "volcano-scheduler"
+    name: "Volcano Scheduler (Always-On Coordination)"
+    description: |
+      Deploys Volcano scheduler for gang scheduling and resource coordination.
+      Continuously optimizes pod placement and maintains gang affinity.
+      
+      Expected behavior:
+      - Good latency (coordinated placement)
+      - High scheduling overhead (always active)
+      - Increased API server load
+      - Pod migration during optimization
+    
+    scheduler:
+      type: "volcano"
+      config:
+        gang-scheduling: true
+        priority-class: true
+        gang-total-resource: true
+    
+    traffic_scenarios:
+      - name: "steady"
+        duration_seconds: 300
+        target_rps: 100
+      
+      - name: "spike"
+        duration_seconds: 300
+        target_rps: 100
+        spike_multiplier: 10
+        spike_at_second: 60
+      
+      - name: "ramp"
+        duration_seconds: 240
+        target_rps: 100
+        ramp_to: 1000
+        ramp_duration_seconds: 120
+      
+      - name: "mixed"
+        duration_seconds: 300
+        target_rps: 100
+        burst_frequency_seconds: 60
+        burst_multiplier: 10
+    
+    metrics:
+      - latency_p50
+      - latency_p95
+      - latency_p99
+      - throughput
+      - error_rate
+      - pending_pods
+      - scheduling_rate
+      - api_server_load
+      - pod_migration_count
+    
+    repetitions: 3
+    cooldown_seconds: 60
+
+  - id: "static-affinity"
+    name: "Static Pod Affinity (Static Baseline)"
+    description: |
+      Uses hardcoded pod affinity rules to keep related services co-located.
+      Affinity rules are static and do not adapt to load conditions.
+      
+      Expected behavior:
+      - Good latency once placed (predefined co-location)
+      - Wasted resources (affinity rules may prevent flexible placement)
+      - Fails under extreme load (topology saturation)
+    
+    scheduler:
+      type: "default"
+      pod_affinity_mode: "static"
+    
+    pod_affinity_rules:
+      - service: "checkoutservice"
+        affinity_to: ["cartservice", "paymentservice", "currencyservice"]
+        weight: 100
+      - service: "paymentservice"
+        affinity_to: ["currencyservice"]
+        weight: 90
+    
+    traffic_scenarios:
+      - name: "steady"
+        duration_seconds: 300
+        target_rps: 100
+      
+      - name: "spike"
+        duration_seconds: 300
+        target_rps: 100
+        spike_multiplier: 10
+        spike_at_second: 60
+      
+      - name: "ramp"
+        duration_seconds: 240
+        target_rps: 100
+        ramp_to: 1000
+        ramp_duration_seconds: 120
+      
+      - name: "mixed"
+        duration_seconds: 300
+        target_rps: 100
+        burst_frequency_seconds: 60
+        burst_multiplier: 10
+    
+    metrics:
+      - latency_p50
+      - latency_p95
+      - latency_p99
+      - throughput
+      - error_rate
+      - pending_pods
+      - scheduling_rate
+      - unschedulable_pods
+    
+    repetitions: 3
+    cooldown_seconds: 60
+
+  - id: "nexus-scheduler"
+    name: "NEXUS Scheduler (Event-Driven Gang Scheduling)"
+    description: |
+      Deploys NEXUS scheduler extender for spike-driven gang scheduling.
+      Activates only when spike detected, forms temporary gangs.
+      
+      Expected behavior:
+      - Good latency under burst (dynamic gang co-location)
+      - Low steady-state overhead (dormant 99% of time)
+      - Low API server load (minimal control plane activity)
+      - Precise activation timing (responds within milliseconds)
+    
+    scheduler:
+      type: "nexus"
+      extender:
+        url: "http://nexus-scheduler.nexus-system:9099"
+        filter_verb: "filter"
+        prioritize_verb: "prioritize"
+        weight: 5
+        ignorable: true
+      
+      spike_detection:
+        qps_threshold: 1000
+        p95_latency_threshold_ms: 500
+        error_rate_threshold: 50
+        pending_pod_fallback_threshold: 5
+        cooldown_duration_seconds: 30
+        check_interval_seconds: 10
+    
+    traffic_scenarios:
+      - name: "steady"
+        duration_seconds: 300
+        target_rps: 100
+        expected_state: "IDLE"
+        expected_overhead: "minimal"
+      
+      - name: "spike"
+        duration_seconds: 300
+        target_rps: 100
+        spike_multiplier: 10
+        spike_at_second: 60
+        expected_state: "DORMANT (0-60s) → ACTIVE (60-120s) → IDLE (120-300s)"
+        expected_gang_formation_latency_ms: "<100"
+      
+      - name: "ramp"
+        duration_seconds: 240
+        target_rps: 100
+        ramp_to: 1000
+        ramp_duration_seconds: 120
+        expected_activation_second: "~80"
+        expected_gang_reactivations: "1"
+      
+      - name: "mixed"
+        duration_seconds: 300
+        target_rps: 100
+        burst_frequency_seconds: 60
+        burst_multiplier: 10
+        expected_activations_per_burst: "1"
+    
+    metrics:
+      - latency_p50
+      - latency_p95
+      - latency_p99
+      - throughput
+      - error_rate
+      - pending_pods
+      - scheduling_rate
+      - api_server_load
+      - scheduler_state_changes
+      - gang_formations
+      - gang_dissolutions
+      - control_plane_overhead
+      - extender_latency_p99
+    
+    repetitions: 3
+    cooldown_seconds: 60
+
+# Global test settings
+global:
+  cluster_name: "online-boutique-cluster"
+  application_namespace: "default"
+  monitoring_namespace: "nexus-system"
+  
+  node_heterogeneity:
+    - label: "region-a"
+      count: 2
+    - label: "region-b"
+      count: 3
+    - label: "high-cpu"
+      instance_type: "c5.large"
+      count: 2
+  
+  collection_interval_seconds: 5
+  data_export_format: "json"
+  results_directory: "./research/results"
+
+# Post-experiment analysis
+analysis:
+  comparison_metrics:
+    - "latency_p99_ratio"
+    - "overhead_ratio"
+    - "scheduling_rate_ratio"
+    - "error_rate_comparison"
+    - "resource_efficiency"
+  
+  statistical_significance:
+    method: "t-test"
+    confidence_level: 0.95
+  
+  report_generation: true
+  generate_graphs: true

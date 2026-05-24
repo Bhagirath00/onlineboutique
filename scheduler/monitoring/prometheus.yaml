@@ -7,6 +7,7 @@ data:
   prometheus.yml: |
     global:
       scrape_interval: 5s
+      evaluation_interval: 5s
     scrape_configs:
       - job_name: 'prometheus'
         static_configs:
@@ -14,6 +15,27 @@ data:
       - job_name: 'nexus-scheduler'
         static_configs:
           - targets: ['nexus-scheduler.nexus-system.svc.cluster.local:9099']
+      - job_name: 'volcano-scheduler'
+        static_configs:
+          - targets: ['volcano-scheduler.volcano-system.svc.cluster.local:8080']
+      - job_name: 'coscheduler'
+        static_configs:
+          - targets: ['scheduler-plugins-scheduler.scheduler-plugins.svc.cluster.local:9090']
+      - job_name: 'kube-state-metrics'
+        static_configs:
+          - targets: ['kube-state-metrics.nexus-system.svc.cluster.local:8080']
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
       - job_name: 'kubernetes-pods'
         kubernetes_sd_configs:
         - role: pod
