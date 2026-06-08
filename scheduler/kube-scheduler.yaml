@@ -47,10 +47,6 @@ data:
     kind: KubeSchedulerConfiguration
     profiles:
       - schedulerName: nexus-scheduler
-        plugins:
-          multiPoint:
-            enabled:
-              - name: "*"
     extenders:
       - urlPrefix: "http://nexus-scheduler.nexus-system.svc.cluster.local:9099"
         filterVerb: "filter"

@@ -26,3 +26,21 @@
 .DS_Store
 Thumbs.db
 .vscode/
+
+# --- Research Scratch & Temp Files ---
+scratch/
+research/scratch/
+**/metrics_labels.json
+
+# --- Redundant patches ---
+*.json-patch
+*-patch.json
+patch.json
+
+# --- Locally preserved research logs and charts ---
+Report.txt
+nexus_gang_report.png
+Antigravity.md
+research/
+
+

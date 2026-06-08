@@ -62,7 +62,7 @@ func NewSpikeDetector(clientset *kubernetes.Clientset) *SpikeDetector {
 		prometheusURL = "http://prometheus-server.nexus-system.svc.cluster.local:80"
 	}
 
-	qpsThreshold := 1000.0
+	qpsThreshold := 100.0
 	if qpsStr := os.Getenv("SPIKE_QPS_THRESHOLD"); qpsStr != "" {
 		if val, err := strconv.ParseFloat(qpsStr, 64); err == nil {
 			qpsThreshold = val
@@ -91,7 +91,7 @@ func NewSpikeDetector(clientset *kubernetes.Clientset) *SpikeDetector {
 		qpsThreshold:        qpsThreshold,
 		errorThreshold:      errorThreshold,
 		p95LatencyThreshold: p95LatencyThreshold,
-		fallbackThreshold:   12,
+		fallbackThreshold:   1,
 		client: &http.Client{
 			Timeout: 5 * time.Second,
 		},
@@ -167,13 +167,14 @@ func (sd *SpikeDetector) isPrometheusReachable() bool {
 	return resp.StatusCode == http.StatusOK
 }
 
-// queryQPS retrieves the current CPU usage across all services in the default namespace
+// queryQPS retrieves the current request rate across all services in the default namespace
 func (sd *SpikeDetector) queryQPS() (float64, error) {
-	// Query total CPU usage in millicores for the default namespace
-	query := `sum(rate(container_cpu_usage_seconds_total{namespace="default"}[1m])) * 1000`
+	// Query total requests per second for the default namespace using Istio metrics
+	// This provides a more accurate signal for traffic spikes than CPU usage
+	query := `sum(rate(istio_requests_total{reporter="destination", namespace="default"}[1m]))`
 	val, err := sd.queryPrometheus(query)
 	if err != nil {
-		klog.Warningf("NEXUS-SPIKE: Failed to query Prometheus for CPU: %v", err)
+		klog.Warningf("NEXUS-SPIKE: Failed to query Prometheus for QPS: %v", err)
 		return 0, err
 	}
 	return val, nil
